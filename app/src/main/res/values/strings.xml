@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">AlbertControl</string>
+    <string name="bluetooth_devices">Bluetooth Devices</string>
+</resources>
