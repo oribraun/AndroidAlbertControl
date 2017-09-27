@@ -7,6 +7,8 @@ import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Color;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.ParcelUuid;
 import android.support.annotation.StyleRes;
 import android.util.Log;
@@ -35,6 +37,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.UUID;
 
+import static android.R.attr.data;
+
 /**
  * Created by ori on 9/25/2017.
  */
@@ -49,6 +53,12 @@ public class BluetoothDialog extends AlertDialog {
     private static ProgressBar _pairedSpinner;
     private static ProgressBar _availableSpinner;
     private static boolean _searching_devices = false;
+    private static Handler _connectHandler = new Handler(Looper.getMainLooper());
+    private static boolean _isBluetoothConnected = false;
+
+    private final static int _TYPE_PAIRED = 1;
+    private final static int _TYPE_AVAILABLE = 2;
+
     protected BluetoothDialog(Context context) {
         super(context);
     }
@@ -62,6 +72,7 @@ public class BluetoothDialog extends AlertDialog {
     }
 
     public static class Builder extends  AlertDialog.Builder {
+
 
         public Builder(Context context) {
             super(context);
@@ -160,7 +171,7 @@ public class BluetoothDialog extends AlertDialog {
                 @Override
                 public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 //                    addToPairedList("d");
-                    onListItemClick(position);
+                    onListItemClick(position, _TYPE_PAIRED);
                 }
             });
             pairedList.setVerticalScrollBarEnabled(false);
@@ -200,7 +211,7 @@ public class BluetoothDialog extends AlertDialog {
                 @Override
                 public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 //                    addToAvailableList("d");
-                    onListItemClick(position);
+                    onListItemClick(position, _TYPE_AVAILABLE);
                 }
             });
             availableList.setAdapter(_availableListAdapter);
@@ -232,12 +243,26 @@ public class BluetoothDialog extends AlertDialog {
             this.setView(layout);
         }
 
-        public void onListItemClick(int position) {
+        public void onListItemClick(int position, int type) {
             if(_bluetoothSocket == null) {
                 BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
+                try {
+                    if(BluetoothAdapter.getDefaultAdapter().isDiscovering()) {
+                        Thread.sleep(1000);
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
                 availableFinishLoading();
-                String mac = _availableMacListAdapter.get(position).toString();
-                String name = _availableListAdapter.getItem(position).toString();
+                String mac = "";
+                String name = "";
+                if(type == _TYPE_PAIRED) {
+                    mac = _pairedMacListAdapter.get(position).toString();
+                    name = _pairedListAdapter.getItem(position).toString();
+                } else if(type == _TYPE_AVAILABLE) {
+                    mac = _availableMacListAdapter.get(position).toString();
+                    name = _availableListAdapter.getItem(position).toString();
+                }
                 BluetoothDevice device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(mac);
                 try {
 //                            BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
@@ -266,21 +291,41 @@ public class BluetoothDialog extends AlertDialog {
                                 try {
                                     if(_bluetoothSocket != null) {
                                         _bluetoothSocket.connect();
+//
+//                                        _connectHandler.post(new Runnable() {
+//                                            @Override
+//                                            public void run() {
+//                                                // Your UI updates here
+//                                                if(!_isBluetoothConnected) {
+//                                                    dialogErrorMessage("please approve connection on the device");
+//                                                } else {
+//                                                    dialogErrorMessage("connected");
+//                                                }
+//                                            }
+//                                        });
                                     }
                                 } catch (Exception e) {
                                     e.printStackTrace();
-                                    try {
-                                        killSocket();
-//                                        dialogErrorMessage("error connect to bluetooth device");
-                                    } catch (IOException closeException) {
-                                        Log.e("ERROR", "Could not close the client socket", closeException);
-                                    }
+//                                    try {
+//                                        killSocket();
+////                                        _connectHandler.post(new Runnable() {
+////                                            @Override
+////                                            public void run() {
+////                                                // Your UI updates here
+////                                                if(!_isBluetoothConnected) {
+////                                                    dialogErrorMessage("no bluetooth device");
+////                                                }
+////                                            }
+////                                        });
+////                                        dialogErrorMessage("error connect to bluetooth device");
+//                                    } catch (IOException closeException) {
+//                                        Log.e("ERROR", "Could not close the client socket", closeException);
+//                                    }
                                 }
                             }
                         };
                         t.start();
 //                        _bluetoothSocket.connect();
-                        dialogErrorMessage("please approve connection on the device");
 //                            builder1.setCancelable(true);
 //
 //                            builder1.setPositiveButton(
@@ -299,7 +344,7 @@ public class BluetoothDialog extends AlertDialog {
 //                                        }
 //                                    });
                     } else {
-                        dialogErrorMessage("no bluetooth device");
+                        dialogErrorMessage("no bluetooth device 2");
                     }
 //                } catch (Exception connectException) {
 //                    // Unable to connect; close the socket and return.
@@ -318,6 +363,9 @@ public class BluetoothDialog extends AlertDialog {
 //                        _bluetoothSocket = device.createRfcommSocketToServiceRecord(device.getUuids()[0].getUuid())
             } else {
                 if(_bluetoothSocket != null) {
+                    if(!_bluetoothSocket.isConnected()) {
+                        _bluetoothSocket = null;
+                    }
                     Log.i("connect", "c - " + String.valueOf(_bluetoothSocket.isConnected()));
                 }
             }
@@ -359,6 +407,12 @@ public class BluetoothDialog extends AlertDialog {
             _searching_devices = false;
         }
 
+        public void setBluetoothConnected(boolean isConnected) {
+            if(_bluetoothSocket != null) {
+                _isBluetoothConnected = isConnected;
+            }
+        }
+
         public void killSocket() throws IOException {
             if(_bluetoothSocket != null) {
                 _bluetoothSocket.close();
@@ -366,7 +420,7 @@ public class BluetoothDialog extends AlertDialog {
             }
         }
 
-        private void dialogErrorMessage(String msg) {
+        public void dialogErrorMessage(String msg) {
             AlertDialog.Builder b = new AlertDialog.Builder(getContext());
             b.setMessage(msg);
             b.setPositiveButton("OK", new DialogInterface.OnClickListener() {

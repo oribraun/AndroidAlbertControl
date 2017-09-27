@@ -182,19 +182,37 @@ public class BluetoothDialogFragment extends DialogFragment {
             }
             else if(BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
                 boolean connected = device.getBondState() == BluetoothDevice.BOND_BONDED;
-                if(!connected) {
+//                if(!connected) {
 //                    try {
+//                        _builder.setBluetoothConnected(false);
 //                        _builder.killSocket();
 //                    } catch (IOException e) {
 //                        e.printStackTrace();
 //                    }
-                }
-                Log.v("connected = " , String.valueOf(connected));
+//                } else {
+//                    _builder.setBluetoothConnected(true);
+//                    _dialog.dismiss();
+//                }
+//                Log.v("connected = " , String.valueOf(connected));
             }
             else if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
-                if (device.getBondState() == BluetoothDevice.BOND_BONDED) {
-                    // CONNECT
+                boolean connected = device.getBondState() == BluetoothDevice.BOND_BONDED;
+                if(!connected) {
+                    if(device.getBondState() == BluetoothDevice.BOND_BONDING) {
+                        _builder.dialogErrorMessage("please approve connection on the device");
+                    }
+                    try {
+                        _builder.setBluetoothConnected(false);
+                        _builder.killSocket();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    _builder.setBluetoothConnected(true);
+                    _dialog.dismiss();
+                    _builder.dialogErrorMessage("connected");
                 }
+                Log.v("connected = " , String.valueOf(connected));
             }
             else if (BluetoothDevice.ACTION_PAIRING_REQUEST.equals(action)) {
                 try {
