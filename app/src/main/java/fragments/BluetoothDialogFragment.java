@@ -16,6 +16,7 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.ParcelUuid;
 import android.os.Parcelable;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -23,6 +24,7 @@ import android.widget.ListView;
 
 import com.dev.ori.albertcontrol.R;
 
+import java.io.IOException;
 import java.util.Set;
 import java.util.UUID;
 
@@ -90,6 +92,7 @@ public class BluetoothDialogFragment extends DialogFragment {
                 IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
                 filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
                 filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+                filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
                 filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
                 filter.addAction(BluetoothDevice.ACTION_PAIRING_REQUEST);
                 filter.addAction(BluetoothDevice.ACTION_UUID);
@@ -141,10 +144,10 @@ public class BluetoothDialogFragment extends DialogFragment {
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
+            BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                 // Discovery has found a device. Get the BluetoothDevice
                 // object and its info from the Intent.
-                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 String deviceName = device.getName();
                 String deviceHardwareAddress = device.getAddress(); // MAC address
                 _builder.addToAvailableList((deviceName != null ?  deviceName :  deviceHardwareAddress), deviceHardwareAddress);
@@ -175,15 +178,26 @@ public class BluetoothDialogFragment extends DialogFragment {
             }
             else if(BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
                 _builder.availableFinishLoading();
-                _builder.finsihSearching();
-            } else if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
-                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                _builder.finishSearching();
+            }
+            else if(BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
+                boolean connected = device.getBondState() == BluetoothDevice.BOND_BONDED;
+                if(!connected) {
+//                    try {
+//                        _builder.killSocket();
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+                }
+                Log.v("connected = " , String.valueOf(connected));
+            }
+            else if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
                 if (device.getBondState() == BluetoothDevice.BOND_BONDED) {
                     // CONNECT
                 }
-            } else if (BluetoothDevice.ACTION_PAIRING_REQUEST.equals(action)) {
+            }
+            else if (BluetoothDevice.ACTION_PAIRING_REQUEST.equals(action)) {
                 try {
-                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                     int pin=intent.getIntExtra("android.bluetooth.device.extra.PAIRING_KEY", 1234);
                     //the pin in case you need to accept for an specific pin
 //                    Log.d(TAG, "Start Auto Pairing. PIN = " + intent.getIntExtra("android.bluetooth.device.extra.PAIRING_KEY",1234));

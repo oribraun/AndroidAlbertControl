@@ -21,6 +21,8 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -35,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
     private Button _recButton;
     private SpeechRecognizer _sr;
     private TextView _speechText;
+    private boolean _dialogShowen = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,15 +47,21 @@ public class MainActivity extends AppCompatActivity {
         _recButton = (Button) findViewById(R.id.button);
         _speechText = (TextView) findViewById(R.id.speechText);
         Permissions _permissions = new Permissions(this);
-        if(Permissions.requestPermission("RECORD_AUDIO")) {
+        if(Permissions.getPermission("RECORD_AUDIO") &&
+                Permissions.getPermission("BLUETOOTH_ADMIN")
+                && Permissions.getPermission("BLUETOOTH")
+                && Permissions.getPermission("ACCESS_COARSE_LOCATION")) {
             setRecButton();
+        } else {
+            setRecButton2();
         }
-        if(Permissions.requestPermission("BLUETOOTH_ADMIN")
-            && Permissions.requestPermission("BLUETOOTH")
-            && Permissions.requestPermission("ACCESS_COARSE_LOCATION")) {
+        if(Permissions.getPermission("BLUETOOTH_ADMIN")
+            && Permissions.getPermission("BLUETOOTH")
+            && Permissions.getPermission("ACCESS_COARSE_LOCATION")) {
             findDevices();
         }
-        Permissions.requestPermissions(new String[]{"RECORD_AUDIO","BLUETOOTH_ADMIN","BLUETOOTH","ACCESS_COARSE_LOCATION"});
+
+        Permissions.requestPermissions(new String []{"RECORD_AUDIO","BLUETOOTH_ADMIN","BLUETOOTH","ACCESS_COARSE_LOCATION"});
 //        checkPermissions();
     }
 
@@ -119,6 +128,31 @@ public class MainActivity extends AppCompatActivity {
         _sr.setRecognitionListener(new SpeechRecognizerListener(_speechText));
     }
 
+    private void setRecButton2() {
+        _recButton.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if(event.getAction() == MotionEvent.ACTION_DOWN) {
+                    List<String> requestPermission = new ArrayList<String>();
+                    if(!Permissions.getPermission("RECORD_AUDIO")) {
+                        requestPermission.add("RECORD_AUDIO");
+                    }
+                    if(!Permissions.getPermission("BLUETOOTH_ADMIN")
+                            || !Permissions.getPermission("BLUETOOTH")
+                            || !Permissions.getPermission("ACCESS_COARSE_LOCATION")) {
+                        requestPermission.add("BLUETOOTH_ADMIN");
+                        requestPermission.add("BLUETOOTH");
+                        requestPermission.add("ACCESS_COARSE_LOCATION");
+                    }
+                    if(requestPermission.size() > 0) {
+                        Permissions.requestPermissions(requestPermission.toArray(new String[requestPermission.size()]));
+                    }
+                }
+                return false;
+            }
+        });
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            String permissions[], int[] grantResults) {
@@ -130,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
         if(BLUETOOTH && BLUETOOTH_ADMIN && ACCESS_COARSE_LOCATION) {
             findDevices();
         }
-        if(RECORD_AUDIO) {
+        if(RECORD_AUDIO && BLUETOOTH && BLUETOOTH_ADMIN && ACCESS_COARSE_LOCATION) {
             setRecButton();
         }
 //        switch (requestCode) {
@@ -157,8 +191,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void findDevices() {
-        BluetoothDialogFragment bluetoothFragment1 = new BluetoothDialogFragment();
-        bluetoothFragment1.show(getFragmentManager(),"bluetoothDevices");
+        if(!_dialogShowen) {
+            BluetoothDialogFragment bluetoothFragment1 = new BluetoothDialogFragment();
+            bluetoothFragment1.show(getFragmentManager(), "bluetoothDevices");
+            _dialogShowen = true;
+        }
 
 //        if(Permissions.getPermission("BLUETOOTH_ADMIN")) {
 //            BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
