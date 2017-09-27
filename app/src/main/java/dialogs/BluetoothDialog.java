@@ -15,6 +15,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -24,6 +25,7 @@ import android.widget.TextView;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.UUID;
 
 /**
  * Created by ori on 9/25/2017.
@@ -72,14 +74,38 @@ public class BluetoothDialog extends AlertDialog {
             layout.setGravity(Gravity.CLIP_VERTICAL);
 //            layout.setPadding(5,5,5,5);
 
+            RelativeLayout RelativeTitle = new RelativeLayout(context);
+            RelativeTitle.setLayoutParams(new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.WRAP_CONTENT));
+            RelativeTitle.setPadding(40, 40, 40, 40);
+            RelativeTitle.setBackgroundColor(Color.parseColor("#adadad"));
             TextView title = new TextView(context);
             title.setText("Bluetooth");
-            title.setPadding(40, 40, 40, 40);
-            title.setBackgroundColor(Color.parseColor("#adadad"));
+//            title.setPadding(40, 40, 40, 40);
+//            title.setBackgroundColor(Color.parseColor("#adadad"));
             title.setTextColor(Color.parseColor("#ffffff"));
             title.setGravity(Gravity.LEFT);
             title.setTextSize(20);
+            RelativeLayout.LayoutParams textviewParams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT,RelativeLayout.LayoutParams.WRAP_CONTENT);
+            textviewParams.addRule(RelativeLayout.ALIGN_PARENT_LEFT, RelativeLayout.TRUE);
 
+            Button refresh = new Button(context);
+            refresh.setText("R");
+            refresh.setGravity(Gravity.RIGHT);
+            RelativeLayout.LayoutParams buttonParams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT,RelativeLayout.LayoutParams.WRAP_CONTENT);
+            buttonParams.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, RelativeLayout.TRUE);
+
+            RelativeTitle.addView(title,textviewParams);
+            RelativeTitle.addView(refresh, buttonParams);
+
+            refresh.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    _availableListAdapter.clear();
+                    BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
+                    BluetoothAdapter.getDefaultAdapter().startDiscovery();
+//                    _availableSpinner.setVisibility(View.VISIBLE);
+                }
+            });
             TextView pairedTitle = new TextView(context);
             pairedTitle.setText("Paired Devices");
             pairedTitle.setPadding(20, 20, 20, 20);
@@ -149,18 +175,42 @@ public class BluetoothDialog extends AlertDialog {
             availableList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                 @Override
                 public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                    Log.i("clicked","clicked");
                     if(_bluetoothSocket == null && !_searching_devices) {
                         String mac = _availableMacListAdapter.get(position).toString();
                         String name = _availableListAdapter.getItem(position).toString();
                         try {
+//                            BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
                             BluetoothDevice device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(mac);
-                            ParcelUuid [] uuids = device.getUuids();
-                            _bluetoothSocket = device.createInsecureRfcommSocketToServiceRecord(uuids[0].getUuid());
-                            _bluetoothSocket.connect();
+                            if(device.fetchUuidsWithSdp()) {
+                                ParcelUuid[] uuids = device.getUuids();
+                                UUID uuid = uuids[uuids.length-1].getUuid();
+                                _bluetoothSocket = device.createRfcommSocketToServiceRecord(uuid);
+
+                            }
                         } catch (IOException e) {
+                            Log.e("ERROR", "Socket's create() method failed", e);
                             e.printStackTrace();
                         }
+                        try {
+                            // Connect to the remote device through the socket. This call blocks
+                            // until it succeeds or throws an exception.
+                            _bluetoothSocket.connect();
+                            _bluetoothSocket = null;
+                        } catch (IOException connectException) {
+                            // Unable to connect; close the socket and return.
+                            try {
+                                _bluetoothSocket.close();
+                                _bluetoothSocket = null;
+                            } catch (IOException closeException) {
+                                Log.e("ERROR", "Could not close the client socket", closeException);
+                            }
+                        }
 //                        _bluetoothSocket = device.createRfcommSocketToServiceRecord(device.getUuids()[0].getUuid())
+                    } else {
+                        if(_bluetoothSocket != null) {
+                            Log.i("connect", "c - " + String.valueOf(_bluetoothSocket.isConnected()));
+                        }
                     }
 //                    addToAvailableList("d");
                 }
@@ -181,7 +231,7 @@ public class BluetoothDialog extends AlertDialog {
 
             listParams.weight = 2;
 //            titleParams.bottomMargin = 5;
-            layout.addView(title,titleParams);
+            layout.addView(RelativeTitle);
             layout.addView(pairedTitle,titleParams);
             layout.addView(pairedList,listParams);
             layout.addView(_pairedSpinner,progressBarParams);
@@ -213,9 +263,15 @@ public class BluetoothDialog extends AlertDialog {
         public void availableFinishLoading() {
             _availableSpinner.setVisibility(View.GONE);
         }
+        public void availableStartLoading() {
+            _availableSpinner.setVisibility(View.VISIBLE);
+        }
 
-        public void toggleSearching() {
-            _searching_devices = !_searching_devices;
+        public void startSearching() {
+            _searching_devices = true;
+        }
+        public void finsihSearching() {
+            _searching_devices = false;
         }
     }
 }

@@ -14,6 +14,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.os.ParcelUuid;
+import android.os.Parcelable;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -22,6 +24,7 @@ import android.widget.ListView;
 import com.dev.ori.albertcontrol.R;
 
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Created by ori on 9/25/2017.
@@ -85,9 +88,16 @@ public class BluetoothDialogFragment extends DialogFragment {
                 _builder.pairedFinishLoading();
 
                 IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+                filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
                 filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+                filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+                filter.addAction(BluetoothDevice.ACTION_PAIRING_REQUEST);
+                filter.addAction(BluetoothDevice.ACTION_UUID);
                 getActivity().registerReceiver(mReceiver, filter);
                 boolean discoverySuccess = mBluetoothAdapter.startDiscovery();
+                if(discoverySuccess) {
+//                    _builder.toggleSearching();
+                }
                 int finish = 1;
 //                BluetoothDialogFragment newFragment = new BluetoothDialogFragment();
 //                newFragment.show(getFragmentManager(),"bluetoothDevices");
@@ -139,12 +149,53 @@ public class BluetoothDialogFragment extends DialogFragment {
                 String deviceHardwareAddress = device.getAddress(); // MAC address
                 _builder.addToAvailableList((deviceName != null ?  deviceName :  deviceHardwareAddress), deviceHardwareAddress);
             }
+            else if(BluetoothDevice.ACTION_UUID .equals(action)) {
+//                Boolean hasSPP = false;
+//
+//                // Get the device
+//                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+//
+//                // Get the UUID
+//                Parcelable[] uuidExtra = intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID);
+//                final UUID SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+//                if(uuidExtra != null) {
+//                    for (int i = 0; i < uuidExtra.length; i++) {
+//                        ParcelUuid parcelUuid = (ParcelUuid) uuidExtra[i];
+//
+//                        if (parcelUuid.getUuid().equals(SPP_UUID)) {
+//                            hasSPP = true;
+//                        }
+//                    }
+//                }
+////                _builder.availableFinishLoading();
+            }
             else if(BluetoothAdapter.ACTION_DISCOVERY_STARTED.equals(action)) {
-//                _builder.availableFinishLoading();
+                _builder.availableStartLoading();
+                _builder.startSearching();
             }
             else if(BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
                 _builder.availableFinishLoading();
-                _builder.toggleSearching();
+                _builder.finsihSearching();
+            } else if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                if (device.getBondState() == BluetoothDevice.BOND_BONDED) {
+                    // CONNECT
+                }
+            } else if (BluetoothDevice.ACTION_PAIRING_REQUEST.equals(action)) {
+                try {
+                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    int pin=intent.getIntExtra("android.bluetooth.device.extra.PAIRING_KEY", 1234);
+                    //the pin in case you need to accept for an specific pin
+//                    Log.d(TAG, "Start Auto Pairing. PIN = " + intent.getIntExtra("android.bluetooth.device.extra.PAIRING_KEY",1234));
+                    byte[] pinBytes;
+                    pinBytes = (""+pin).getBytes("UTF-8");
+//                    device.setPin(pinBytes);
+                    //setPairing confirmation if neeeded
+//                    device.setPairingConfirmation(true);
+                } catch (Exception e) {
+//                    Log.e(TAG, "Error occurs when trying to auto pair");
+                    e.printStackTrace();
+                }
             }
         }
     };

@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/AlbertControl.iml" filepath="$PROJECT_DIR$/AlbertControl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/AndroidAlbertControl.iml" filepath="$PROJECT_DIR$/AndroidAlbertControl.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
     </modules>
   </component>
