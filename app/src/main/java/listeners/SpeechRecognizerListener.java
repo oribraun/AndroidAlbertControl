@@ -10,6 +10,8 @@ import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 
+import fragments.BluetoothDialogFragment;
+
 /**
  * Created by ori on 9/24/2017.
  */
@@ -19,6 +21,7 @@ public class SpeechRecognizerListener implements RecognitionListener
     private static final String TAG = "speech Recognizer";
     private boolean _speechReady = false;
     private TextView _speechText;
+    private BluetoothDialogFragment _bluetoothFragment;
     private String [] _albertCommands = {
             "Albert Begin Scan Male",
             "Albert Begin Scan Female",
@@ -37,6 +40,10 @@ public class SpeechRecognizerListener implements RecognitionListener
 
     public SpeechRecognizerListener(TextView tv) {
         _speechText = tv;
+    }
+    public SpeechRecognizerListener(TextView tv, BluetoothDialogFragment bluetoothFragment) {
+        _speechText = tv;
+        _bluetoothFragment = bluetoothFragment;
     }
 
     public void onReadyForSpeech(Bundle params)
@@ -90,6 +97,7 @@ public class SpeechRecognizerListener implements RecognitionListener
             }
             if(foundCommand) {
                 _speechText.setText("results: " + foundText);
+                _bluetoothFragment.sendBluetoothMessage(foundText);
             } else {
                 _speechText.setText("not found");
             }

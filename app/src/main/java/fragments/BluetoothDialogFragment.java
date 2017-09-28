@@ -68,6 +68,7 @@ public class BluetoothDialogFragment extends DialogFragment {
                 // Device does not support Bluetooth
 //                BluetoothDialogFragment newFragment = new BluetoothDialogFragment();
 //                newFragment.show(getFragmentManager(),"bluetoothDevices");
+                this.dismiss();
                 _builder.pairedFinishLoading();
                 _builder.availableFinishLoading();
             } else {
@@ -234,11 +235,11 @@ public class BluetoothDialogFragment extends DialogFragment {
 //                    _builder.setBluetoothConnected(true);
 //                    _dialog.dismiss();
 //                    _builder.dialogErrorMessage("connected");
-                    try {
-                        _builder.socketSendMessage();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+//                    try {
+//                        _builder.socketSendMessage();
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
                 }
                 Log.v("connected = " , String.valueOf(connected));
             }
@@ -273,5 +274,13 @@ public class BluetoothDialogFragment extends DialogFragment {
 
     public static void dialogDismiss() {
         _dialog.dismiss();
+    }
+
+    public void sendBluetoothMessage(String msg) {
+        try {
+            _builder.socketSendMessage(msg);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

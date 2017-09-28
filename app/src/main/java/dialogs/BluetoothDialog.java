@@ -352,7 +352,14 @@ public class BluetoothDialog extends AlertDialog {
                                         @Override
                                         public void run() {
                                             // Your UI updates here
+                                            setBluetoothConnected(false);
+                                            dialogErrorMessage("could not connect device");
                                             hideLoader();
+                                            try {
+                                                killSocket();
+                                            } catch (IOException e1) {
+                                                e1.printStackTrace();
+                                            }
                                         }
                                     });
 //                                    try {
@@ -481,11 +488,13 @@ public class BluetoothDialog extends AlertDialog {
             }
         }
 
-        public void socketSendMessage() throws IOException {
-            OutputStream outStream = _bluetoothSocket.getOutputStream();
-            byte[] msgBuffer = String.valueOf(true).getBytes();
-            outStream.write(msgBuffer);
-            outStream.flush();
+        public void socketSendMessage(String str) throws IOException {
+            if(_bluetoothSocket.isConnected()) {
+                OutputStream outStream = _bluetoothSocket.getOutputStream();
+                byte[] msgBuffer = str.getBytes();
+                outStream.write(msgBuffer);
+                outStream.flush();
+            }
         }
 
         public void dialogErrorMessage(String msg) {

@@ -38,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
     private SpeechRecognizer _sr;
     private TextView _speechText;
     private boolean _dialogShowen = false;
+    private BluetoothDialogFragment _bluetoothFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,18 +48,18 @@ public class MainActivity extends AppCompatActivity {
         _recButton = (Button) findViewById(R.id.button);
         _speechText = (TextView) findViewById(R.id.speechText);
         Permissions _permissions = new Permissions(this);
+        if(Permissions.getPermission("BLUETOOTH_ADMIN")
+            && Permissions.getPermission("BLUETOOTH")
+            && Permissions.getPermission("ACCESS_COARSE_LOCATION")) {
+            findDevices();
+        }
         if(Permissions.getPermission("RECORD_AUDIO") &&
                 Permissions.getPermission("BLUETOOTH_ADMIN")
                 && Permissions.getPermission("BLUETOOTH")
                 && Permissions.getPermission("ACCESS_COARSE_LOCATION")) {
             setRecButton();
         } else {
-            setRecButton2();
-        }
-        if(Permissions.getPermission("BLUETOOTH_ADMIN")
-            && Permissions.getPermission("BLUETOOTH")
-            && Permissions.getPermission("ACCESS_COARSE_LOCATION")) {
-            findDevices();
+            setRecButtonPermmisions();
         }
 
         Permissions.requestPermissions(new String []{"RECORD_AUDIO","BLUETOOTH_ADMIN","BLUETOOTH","ACCESS_COARSE_LOCATION"});
@@ -125,10 +126,10 @@ public class MainActivity extends AppCompatActivity {
         });
 
         _sr = SpeechRecognizer.createSpeechRecognizer(this);
-        _sr.setRecognitionListener(new SpeechRecognizerListener(_speechText));
+        _sr.setRecognitionListener(new SpeechRecognizerListener(_speechText, _bluetoothFragment));
     }
 
-    private void setRecButton2() {
+    private void setRecButtonPermmisions() {
         _recButton.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -192,8 +193,8 @@ public class MainActivity extends AppCompatActivity {
 
     public void findDevices() {
         if(!_dialogShowen) {
-            BluetoothDialogFragment bluetoothFragment1 = new BluetoothDialogFragment();
-            bluetoothFragment1.show(getFragmentManager(), "bluetoothDevices");
+            _bluetoothFragment = new BluetoothDialogFragment();
+            _bluetoothFragment.show(getFragmentManager(), "bluetoothDevices");
             _dialogShowen = true;
         }
 
@@ -253,6 +254,10 @@ public class MainActivity extends AppCompatActivity {
 //        } else {
 //
 //        }
+    }
+
+    public void showDialog() {
+        _bluetoothFragment.show(getFragmentManager(), "bluetoothDevices");
     }
 
     // Create a BroadcastReceiver for ACTION_FOUND.
