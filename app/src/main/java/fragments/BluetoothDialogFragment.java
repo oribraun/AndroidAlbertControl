@@ -7,6 +7,7 @@ import services.Permissions;
 import android.app.Dialog;
 import android.app.DialogFragment;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -34,10 +35,10 @@ import java.util.UUID;
 
 public class BluetoothDialogFragment extends DialogFragment {
 
-    private AlertDialog _dialog;
+    private static AlertDialog _dialog;
     private BluetoothDialog.Builder _builder;
 //    private CharSequence[] _Items = new CharSequence[]{"a","b","c"};
-    ArrayAdapter<String> _Adapter;
+    BluetoothAdapter _mBluetoothAdapter;
     private static final int REQUEST_ENABLE_BT = 1;
 
     @Override
@@ -62,46 +63,23 @@ public class BluetoothDialogFragment extends DialogFragment {
         _dialog.setCanceledOnTouchOutside(false);
 
         if(Permissions.getPermission("BLUETOOTH_ADMIN")) {
-            BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-            if (mBluetoothAdapter == null) {
+            _mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+            if (_mBluetoothAdapter == null) {
                 // Device does not support Bluetooth
 //                BluetoothDialogFragment newFragment = new BluetoothDialogFragment();
 //                newFragment.show(getFragmentManager(),"bluetoothDevices");
                 _builder.pairedFinishLoading();
                 _builder.availableFinishLoading();
             } else {
-                if (!mBluetoothAdapter.isEnabled()) {
+                if (!_mBluetoothAdapter.isEnabled()) {
                     Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                     startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+                } else {
+                    startSearch();
                 }
 //                BluetoothDialogFragment bluetoothFragment = new BluetoothDialogFragment();
 //                bluetoothFragment.show(getFragmentManager(),"bluetoothDevices");
 
-                Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
-
-                if (pairedDevices.size() > 0) {
-                    // There are paired devices. Get the name and address of each paired device.
-                    for (BluetoothDevice device : pairedDevices) {
-                        String deviceName = device.getName();
-                        String deviceHardwareAddress = device.getAddress(); // MAC address
-                        _builder.addToPairedList(deviceName, deviceHardwareAddress);
-                    }
-                }
-                _builder.pairedFinishLoading();
-
-                IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-                filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
-                filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-                filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
-                filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
-                filter.addAction(BluetoothDevice.ACTION_PAIRING_REQUEST);
-                filter.addAction(BluetoothDevice.ACTION_UUID);
-                getActivity().registerReceiver(mReceiver, filter);
-                boolean discoverySuccess = mBluetoothAdapter.startDiscovery();
-                if(discoverySuccess) {
-//                    _builder.toggleSearching();
-                }
-                int finish = 1;
 //                BluetoothDialogFragment newFragment = new BluetoothDialogFragment();
 //                newFragment.show(getFragmentManager(),"bluetoothDevices");
 //                BluetoothProfile.ServiceListener mProfileListener = new BluetoothProfile.ServiceListener() {
@@ -140,6 +118,33 @@ public class BluetoothDialogFragment extends DialogFragment {
         return _dialog;
     }
 
+    private void startSearch() {
+        Set<BluetoothDevice> pairedDevices = _mBluetoothAdapter.getBondedDevices();
+
+        if (pairedDevices.size() > 0) {
+            // There are paired devices. Get the name and address of each paired device.
+            for (BluetoothDevice device : pairedDevices) {
+                String deviceName = device.getName();
+                String deviceHardwareAddress = device.getAddress(); // MAC address
+                _builder.addToPairedList(deviceName, deviceHardwareAddress);
+            }
+        }
+        _builder.pairedFinishLoading();
+
+        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+        filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
+        filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+        filter.addAction(BluetoothDevice.ACTION_PAIRING_REQUEST);
+        filter.addAction(BluetoothDevice.ACTION_UUID);
+        getActivity().registerReceiver(mReceiver, filter);
+        boolean discoverySuccess = _mBluetoothAdapter.startDiscovery();
+        if(discoverySuccess) {
+//                    _builder.toggleSearching();
+        }
+        int finish = 1;
+    }
     // Create a BroadcastReceiver for ACTION_FOUND.
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -148,11 +153,24 @@ public class BluetoothDialogFragment extends DialogFragment {
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                 // Discovery has found a device. Get the BluetoothDevice
                 // object and its info from the Intent.
+//                device.fetchUuidsWithSdp();
+                BluetoothClass cls = device.getBluetoothClass();
+                boolean is_pc = false;
+                if(cls.getDeviceClass() == BluetoothClass.Device.COMPUTER_DESKTOP
+                        || cls.getDeviceClass() == BluetoothClass.Device.COMPUTER_LAPTOP
+                        || cls.getDeviceClass() == BluetoothClass.Device.COMPUTER_SERVER) {
+                    is_pc = true;
+                }
                 String deviceName = device.getName();
                 String deviceHardwareAddress = device.getAddress(); // MAC address
-                _builder.addToAvailableList((deviceName != null ?  deviceName :  deviceHardwareAddress), deviceHardwareAddress);
+                if(is_pc) {
+                    _builder.addToAvailableList((deviceName != null ? deviceName : deviceHardwareAddress), deviceHardwareAddress);
+                }
             }
             else if(BluetoothDevice.ACTION_UUID .equals(action)) {
+                Parcelable[] uuidExtra = intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID);
+                ParcelUuid[] uuids = device.getUuids();
+                String deviceName = device.getName();
 //                Boolean hasSPP = false;
 //
 //                // Get the device
@@ -180,6 +198,9 @@ public class BluetoothDialogFragment extends DialogFragment {
                 _builder.availableFinishLoading();
                 _builder.finishSearching();
             }
+            else if(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED.equals(action)) {
+                boolean co = true;
+            }
             else if(BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
                 boolean connected = device.getBondState() == BluetoothDevice.BOND_BONDED;
 //                if(!connected) {
@@ -197,20 +218,27 @@ public class BluetoothDialogFragment extends DialogFragment {
             }
             else if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
                 boolean connected = device.getBondState() == BluetoothDevice.BOND_BONDED;
-                if(!connected) {
-                    if(device.getBondState() == BluetoothDevice.BOND_BONDING) {
-                        _builder.dialogErrorMessage("please approve connection on the device");
-                    }
+                boolean connecting = device.getBondState() == BluetoothDevice.BOND_BONDING;
+                boolean disconnect = device.getBondState() == BluetoothDevice.BOND_NONE;
+                if(disconnect) {
                     try {
                         _builder.setBluetoothConnected(false);
                         _builder.killSocket();
+                        _builder.hideLoader();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                } else {
-                    _builder.setBluetoothConnected(true);
-                    _dialog.dismiss();
-                    _builder.dialogErrorMessage("connected");
+                } else if(connecting) {
+//                    _builder.dialogErrorMessage("please approve connection on the device");
+                } else if(connected) {
+//                    _builder.setBluetoothConnected(true);
+//                    _dialog.dismiss();
+//                    _builder.dialogErrorMessage("connected");
+                    try {
+                        _builder.socketSendMessage();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
                 Log.v("connected = " , String.valueOf(connected));
             }
@@ -232,18 +260,18 @@ public class BluetoothDialogFragment extends DialogFragment {
         }
     };
 
-    public void addItems(String str) {
-        _Adapter.add(str);
-        _Adapter.notifyDataSetChanged();
-//        String actionResultValue = "action";
-//        ListView dropdown= _dialog.getListView();
-//        ListAdapter dropdownAdapter= dropdown.getAdapter();
-//        //
-//        StringBuilder listItem0Text=
-//                (StringBuilder) dropdownAdapter.getItem(0);
-//        listItem0Text.delete(0, listItem0Text.length());
-//        listItem0Text.append("Red " + actionResultValue);
-//        //
-//        dropdown.invalidateViews();
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(resultCode == -1){
+            // bluetooth enabled
+            startSearch();
+        }else{
+            // show error
+        }
+    }
+
+    public static void dialogDismiss() {
+        _dialog.dismiss();
     }
 }
