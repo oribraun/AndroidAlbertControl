@@ -2,7 +2,9 @@ package fragments;
 
 import android.app.AlertDialog;
 import dialogs.BluetoothDialog;
+import services.Bluetooth;
 import services.Permissions;
+import services.Preferences;
 
 import android.app.Dialog;
 import android.app.DialogFragment;
@@ -14,6 +16,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.ParcelUuid;
 import android.os.Parcelable;
@@ -26,6 +29,7 @@ import android.widget.ListView;
 import com.dev.ori.albertcontrol.R;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Set;
 import java.util.UUID;
 
@@ -36,9 +40,9 @@ import java.util.UUID;
 public class BluetoothDialogFragment extends DialogFragment {
 
     private static AlertDialog _dialog;
-    private BluetoothDialog.Builder _builder;
+    private static BluetoothDialog.Builder _builder;
 //    private CharSequence[] _Items = new CharSequence[]{"a","b","c"};
-    BluetoothAdapter _mBluetoothAdapter;
+    BluetoothAdapter _mBluetoothAdapter1;
     private static final int REQUEST_ENABLE_BT = 1;
 
     @Override
@@ -58,26 +62,44 @@ public class BluetoothDialogFragment extends DialogFragment {
 //                        // of the selected item
 //                    }
 //                });
-        _dialog = _builder.create();
+//        String bluetoothMac = Preferences.getString("bluetoothMac");
+//        String bluetoothName = Preferences.getString("bluetoothName");
+//        if(bluetoothMac != "") {
+//
+//        }
+        String bluetoothMac = Preferences.getString("bluetoothMac");
+        String bluetoothName = Preferences.getString("bluetoothName");
+        if(bluetoothMac != "") {
+            try {
+                Bluetooth.setSocket(bluetoothMac);
+                Bluetooth bluetooth = new Bluetooth();
+                bluetooth.connect();
+                if(Bluetooth.isConnected()) {
+                    Bluetooth.isConnected();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            _dialog = _builder.create();
 //        _dialog.setCancelable(false);
-        _dialog.setCanceledOnTouchOutside(false);
+            _dialog.setCanceledOnTouchOutside(false);
 
-        if(Permissions.getPermission("BLUETOOTH_ADMIN")) {
-            _mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-            if (_mBluetoothAdapter == null) {
-                // Device does not support Bluetooth
+            if (Permissions.getPermission("BLUETOOTH_ADMIN")) {
+                if (Bluetooth.getAdapter() == null) {
+                    // Device does not support Bluetooth
 //                BluetoothDialogFragment newFragment = new BluetoothDialogFragment();
 //                newFragment.show(getFragmentManager(),"bluetoothDevices");
-                this.dismiss();
-                _builder.pairedFinishLoading();
-                _builder.availableFinishLoading();
-            } else {
-                if (!_mBluetoothAdapter.isEnabled()) {
-                    Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                    startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+                    this.dismiss();
+                    _builder.pairedFinishLoading();
+                    _builder.availableFinishLoading();
                 } else {
-                    startSearch();
-                }
+                    if (!Bluetooth.isEnabled()) {
+                        Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                        startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+                    } else {
+                        startSearch();
+                    }
 //                BluetoothDialogFragment bluetoothFragment = new BluetoothDialogFragment();
 //                bluetoothFragment.show(getFragmentManager(),"bluetoothDevices");
 
@@ -99,14 +121,15 @@ public class BluetoothDialogFragment extends DialogFragment {
 
 // Establish connection to the proxy.
 //                mBluetoothAdapter.getProfileProxy(this, mProfileListener, BluetoothProfile.HEADSET);
-            }
+                }
 
 // ... call functions on mBluetoothHeadset
 
 // Close proxy connection after use.
 //            mBluetoothAdapter.closeProfileProxy(mBluetoothHeadset);
-        } else {
+            } else {
 
+            }
         }
 //        ListView DialogItems = _dialog.getListView();
 //        DialogItems.setOnItemClickListener(
@@ -120,7 +143,7 @@ public class BluetoothDialogFragment extends DialogFragment {
     }
 
     private void startSearch() {
-        Set<BluetoothDevice> pairedDevices = _mBluetoothAdapter.getBondedDevices();
+        Set<BluetoothDevice> pairedDevices = Bluetooth.getBondedDevices();
 
         if (pairedDevices.size() > 0) {
             // There are paired devices. Get the name and address of each paired device.
@@ -140,7 +163,7 @@ public class BluetoothDialogFragment extends DialogFragment {
         filter.addAction(BluetoothDevice.ACTION_PAIRING_REQUEST);
         filter.addAction(BluetoothDevice.ACTION_UUID);
         getActivity().registerReceiver(mReceiver, filter);
-        boolean discoverySuccess = _mBluetoothAdapter.startDiscovery();
+        boolean discoverySuccess = Bluetooth.startDiscovery();
         if(discoverySuccess) {
 //                    _builder.toggleSearching();
         }
@@ -224,7 +247,7 @@ public class BluetoothDialogFragment extends DialogFragment {
                 if(disconnect) {
                     try {
                         _builder.setBluetoothConnected(false);
-                        _builder.killSocket();
+                        Bluetooth.killSocket();
                         _builder.hideLoader();
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -232,6 +255,13 @@ public class BluetoothDialogFragment extends DialogFragment {
                 } else if(connecting) {
 //                    _builder.dialogErrorMessage("please approve connection on the device");
                 } else if(connected) {
+                    Preferences.save("bluetoothMac", device.getAddress());
+                    Preferences.save("bluetoothName", device.getName());
+                    SharedPreferences p = Preferences.getPreferences();
+                    String address = p.getString("bluetoothMac","");
+                    if(address != "") {
+
+                    }
 //                    _builder.setBluetoothConnected(true);
 //                    _dialog.dismiss();
 //                    _builder.dialogErrorMessage("connected");
@@ -273,14 +303,20 @@ public class BluetoothDialogFragment extends DialogFragment {
     }
 
     public static void dialogDismiss() {
-        _dialog.dismiss();
+        if(_dialog != null) {
+            _dialog.dismiss();
+        }
     }
 
     public void sendBluetoothMessage(String msg) {
         try {
-            _builder.socketSendMessage(msg);
+            Bluetooth.socketSendMessage(msg);
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static BluetoothDialog.Builder getDialogBuilder() {
+        return _builder;
     }
 }

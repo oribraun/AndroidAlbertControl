@@ -29,6 +29,7 @@ import java.util.Set;
 import fragments.BluetoothDialogFragment;
 import listeners.SpeechRecognizerListener;
 import services.Permissions;
+import services.Preferences;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -39,11 +40,14 @@ public class MainActivity extends AppCompatActivity {
     private TextView _speechText;
     private boolean _dialogShowen = false;
     private BluetoothDialogFragment _bluetoothFragment;
+    private Preferences _preferences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        _preferences = new Preferences(this);
 
         _recButton = (Button) findViewById(R.id.button);
         _speechText = (TextView) findViewById(R.id.speechText);
@@ -192,11 +196,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void findDevices() {
-        if(!_dialogShowen) {
-            _bluetoothFragment = new BluetoothDialogFragment();
-            _bluetoothFragment.show(getFragmentManager(), "bluetoothDevices");
-            _dialogShowen = true;
-        }
+//        String bluetoothMac = Preferences.getString("bluetoothMac");
+//        String bluetoothName = Preferences.getString("bluetoothName");
+//        if(bluetoothMac != "") {
+//
+//        } else {
+            if (!_dialogShowen) {
+                _bluetoothFragment = new BluetoothDialogFragment();
+                _bluetoothFragment.show(getFragmentManager(), "bluetoothDevices");
+                _dialogShowen = true;
+            }
+//        }
 
 //        if(Permissions.getPermission("BLUETOOTH_ADMIN")) {
 //            BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
