@@ -5,7 +5,7 @@ package interfaces;
  */
 
 public interface BluetoothCallbacks {
-    public void onStart();
-    public void onSuccess();
-    public void onError();
+    public void onCallbackStart();
+    public void onCallbackSuccess();
+    public void onCallbackError();
 }

@@ -29,8 +29,13 @@ public class Bluetooth implements BluetoothCallbacks {
     private static android.bluetooth.BluetoothAdapter _bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
     private static Handler _connectHandler = new Handler(Looper.getMainLooper());
 
+    private static BluetoothCallbacks _callback;
+
     public Bluetooth() {
 
+    }
+    public Bluetooth(BluetoothCallbacks callback) {
+        _callback = callback;
     }
 
     public static boolean startDiscovery() {
@@ -74,15 +79,20 @@ public class Bluetooth implements BluetoothCallbacks {
                         if(_bluetoothSocket != null) {
                             boolean is_connected = _bluetoothSocket.isConnected();
                             _bluetoothSocket.connect();
-                            onSuccess();
+                            onCallbackSuccess();
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
-                        onError();
+                        boolean isConnected = isConnected();
+                        if(isConnected) {
+                            onCallbackSuccess();
+                        } else {
+                            onCallbackError();
+                        }
                     }
                 }
             };
-            onStart();
+            onCallbackStart();
             t.start();
         }
     }
@@ -115,45 +125,42 @@ public class Bluetooth implements BluetoothCallbacks {
         }
     }
     @Override
-    public void onStart() {
-        _connectHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                // Your UI updates here
-                BluetoothDialog.Builder builder = BluetoothDialogFragment.getDialogBuilder();
-                if(builder != null) {
-                    builder.onStart();
+    public void onCallbackStart() {
+        if(_callback != null) {
+            _connectHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    // Your UI updates here
+                    _callback.onCallbackStart();
                 }
-            }
-        });
+            });
+        }
     }
 
     @Override
-    public void onSuccess() {
-        _connectHandler.post(new Runnable() {
-            @Override
-            public void run() {
-            // Your UI updates here
-                BluetoothDialog.Builder builder = BluetoothDialogFragment.getDialogBuilder();
-                if(builder != null) {
-                    builder.onSuccess();
+    public void onCallbackSuccess() {
+        if(_callback != null) {
+            _connectHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    // Your UI updates here
+                    _callback.onCallbackSuccess();
                 }
-            }
-        });
+            });
+        }
     }
 
     @Override
-    public void onError() {
-        _connectHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                // Your UI updates here
-                BluetoothDialog.Builder builder = BluetoothDialogFragment.getDialogBuilder();
-                if(builder != null) {
-                    builder.onError();
+    public void onCallbackError() {
+        if(_callback != null) {
+            _connectHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    // Your UI updates here
+                    _callback.onCallbackError();
                 }
-            }
-        });
+            });
+        }
     }
 
 //    public void dialogErrorMessage(String msg) {

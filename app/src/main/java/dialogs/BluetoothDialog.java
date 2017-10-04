@@ -313,7 +313,7 @@ public class BluetoothDialog extends AlertDialog {
 //                            _bluetoothSocket = device.createRfcommSocketToServiceRecord(uuid);
 //                            _bluetoothSocket = device.createInsecureRfcommSocketToServiceRecord(uuid);
                         Bluetooth.setSocket(mac);
-                        Bluetooth bluetooth = new Bluetooth();
+                        Bluetooth bluetooth = new Bluetooth(this);
                         bluetooth.connect();
 
 
@@ -521,18 +521,18 @@ public class BluetoothDialog extends AlertDialog {
         }
 
         @Override
-        public void onStart() {
+        public void onCallbackStart() {
             showLoader();
         }
         @Override
-        public void onSuccess() {
+        public void onCallbackSuccess() {
             dialogErrorMessage("connected to - " + Preferences.getString("bluetoothName"));
             BluetoothDialogFragment.dialogDismiss();
             hideLoader();
         }
 
         @Override
-        public void onError() {
+        public void onCallbackError() {
             dialogErrorMessage("could not connect device");
             try {
                 Bluetooth.killSocket();
@@ -540,6 +540,11 @@ public class BluetoothDialog extends AlertDialog {
             } catch (IOException e1) {
                 e1.printStackTrace();
             }
+        }
+
+        public void cleanLists() {
+            _pairedMacListAdapter.clear();
+            _availableListAdapter.clear();
         }
     }
 }

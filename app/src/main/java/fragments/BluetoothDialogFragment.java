@@ -2,6 +2,7 @@ package fragments;
 
 import android.app.AlertDialog;
 import dialogs.BluetoothDialog;
+import interfaces.BluetoothCallbacks;
 import services.Bluetooth;
 import services.Permissions;
 import services.Preferences;
@@ -26,6 +27,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
+import com.dev.ori.albertcontrol.MainActivity;
 import com.dev.ori.albertcontrol.R;
 
 import java.io.IOException;
@@ -37,13 +39,15 @@ import java.util.UUID;
  * Created by ori on 9/25/2017.
  */
 
-public class BluetoothDialogFragment extends DialogFragment {
+public class BluetoothDialogFragment extends DialogFragment implements BluetoothCallbacks {
 
     private static AlertDialog _dialog;
     private static BluetoothDialog.Builder _builder;
 //    private CharSequence[] _Items = new CharSequence[]{"a","b","c"};
     BluetoothAdapter _mBluetoothAdapter1;
     private static final int REQUEST_ENABLE_BT = 1;
+    private String _bluetoothMac;
+    private String _bluetoothName;
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -67,39 +71,65 @@ public class BluetoothDialogFragment extends DialogFragment {
 //        if(bluetoothMac != "") {
 //
 //        }
-        String bluetoothMac = Preferences.getString("bluetoothMac");
-        String bluetoothName = Preferences.getString("bluetoothName");
-        if(bluetoothMac != "") {
-            try {
-                Bluetooth.setSocket(bluetoothMac);
-                Bluetooth bluetooth = new Bluetooth();
-                bluetooth.connect();
-                if(Bluetooth.isConnected()) {
-                    Bluetooth.isConnected();
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        } else {
-            _dialog = _builder.create();
-//        _dialog.setCancelable(false);
-            _dialog.setCanceledOnTouchOutside(false);
-
+        _bluetoothMac = Preferences.getString("bluetoothMac");
+        _bluetoothName = Preferences.getString("bluetoothName");
+        if(_bluetoothMac != "") {
             if (Permissions.getPermission("BLUETOOTH_ADMIN")) {
-                if (Bluetooth.getAdapter() == null) {
-                    // Device does not support Bluetooth
-//                BluetoothDialogFragment newFragment = new BluetoothDialogFragment();
-//                newFragment.show(getFragmentManager(),"bluetoothDevices");
-                    this.dismiss();
-                    _builder.pairedFinishLoading();
-                    _builder.availableFinishLoading();
-                } else {
+                if (Bluetooth.getAdapter() != null) {
                     if (!Bluetooth.isEnabled()) {
                         Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                         startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
                     } else {
-                        startSearch();
+                        try {
+                            Bluetooth.setSocket(_bluetoothMac);
+                            Bluetooth bluetooth = new Bluetooth(this);
+                            bluetooth.connect();
+                            if(Bluetooth.isConnected()) {
+                                Bluetooth.isConnected();
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
+                }
+            }
+        } else {
+            createDialog();
+        }
+//        ListView DialogItems = _dialog.getListView();
+//        DialogItems.setOnItemClickListener(
+//                new AdapterView.OnItemClickListener() {
+//                    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+//// do your staff here
+//                        addItems("d");
+//                    }
+//                });
+        return _dialog;
+    }
+
+    public void createDialog() {
+        if(_dialog == null) {
+            _dialog = _builder.create();
+//        _dialog.setCancelable(false);
+            _dialog.setCanceledOnTouchOutside(false);
+        }
+
+
+        if (Permissions.getPermission("BLUETOOTH_ADMIN")) {
+            if (Bluetooth.getAdapter() == null) {
+                // Device does not support Bluetooth
+//                BluetoothDialogFragment newFragment = new BluetoothDialogFragment();
+//                newFragment.show(getFragmentManager(),"bluetoothDevices");
+                this.dismiss();
+                _builder.pairedFinishLoading();
+                _builder.availableFinishLoading();
+            } else {
+                if (!Bluetooth.isEnabled()) {
+                    Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                    startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+                } else {
+                    startSearch();
+                }
 //                BluetoothDialogFragment bluetoothFragment = new BluetoothDialogFragment();
 //                bluetoothFragment.show(getFragmentManager(),"bluetoothDevices");
 
@@ -121,28 +151,21 @@ public class BluetoothDialogFragment extends DialogFragment {
 
 // Establish connection to the proxy.
 //                mBluetoothAdapter.getProfileProxy(this, mProfileListener, BluetoothProfile.HEADSET);
-                }
+            }
 
 // ... call functions on mBluetoothHeadset
 
 // Close proxy connection after use.
 //            mBluetoothAdapter.closeProfileProxy(mBluetoothHeadset);
-            } else {
+        } else {
 
-            }
         }
-//        ListView DialogItems = _dialog.getListView();
-//        DialogItems.setOnItemClickListener(
-//                new AdapterView.OnItemClickListener() {
-//                    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-//// do your staff here
-//                        addItems("d");
-//                    }
-//                });
-        return _dialog;
+        _dialog.show();
     }
 
     private void startSearch() {
+        _builder.cleanLists();
+        Bluetooth.cancelDiscovery();
         Set<BluetoothDevice> pairedDevices = Bluetooth.getBondedDevices();
 
         if (pairedDevices.size() > 0) {
@@ -245,13 +268,13 @@ public class BluetoothDialogFragment extends DialogFragment {
                 boolean connecting = device.getBondState() == BluetoothDevice.BOND_BONDING;
                 boolean disconnect = device.getBondState() == BluetoothDevice.BOND_NONE;
                 if(disconnect) {
-                    try {
-                        _builder.setBluetoothConnected(false);
-                        Bluetooth.killSocket();
-                        _builder.hideLoader();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+//                    try {
+//                        _builder.setBluetoothConnected(false);
+//                        Bluetooth.killSocket();
+//                        _builder.hideLoader();
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
                 } else if(connecting) {
 //                    _builder.dialogErrorMessage("please approve connection on the device");
                 } else if(connected) {
@@ -296,7 +319,20 @@ public class BluetoothDialogFragment extends DialogFragment {
         super.onActivityResult(requestCode, resultCode, data);
         if(resultCode == -1){
             // bluetooth enabled
-            startSearch();
+            if(_bluetoothMac == "") {
+                startSearch();
+            } else {
+                try {
+                    Bluetooth.setSocket(_bluetoothMac);
+                    Bluetooth bluetooth = new Bluetooth(this);
+                    bluetooth.connect();
+                    if(Bluetooth.isConnected()) {
+                        Bluetooth.isConnected();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
         }else{
             // show error
         }
@@ -318,5 +354,24 @@ public class BluetoothDialogFragment extends DialogFragment {
 
     public static BluetoothDialog.Builder getDialogBuilder() {
         return _builder;
+    }
+
+    @Override
+    public void onCallbackStart() {
+        ((MainActivity) getActivity()).showMainLoader();
+        _builder.onCallbackStart();
+    }
+
+    @Override
+    public void onCallbackSuccess() {
+        ((MainActivity) getActivity()).hideMainLoader();
+        _builder.onCallbackSuccess();
+    }
+
+    @Override
+    public void onCallbackError() {
+        ((MainActivity) getActivity()).hideMainLoader();
+        createDialog();
+        _builder.onCallbackError();
     }
 }

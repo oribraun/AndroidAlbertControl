@@ -17,7 +17,14 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.LinearInterpolator;
+import android.view.animation.RotateAnimation;
 import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -28,6 +35,7 @@ import java.util.Set;
 
 import fragments.BluetoothDialogFragment;
 import listeners.SpeechRecognizerListener;
+import services.Bluetooth;
 import services.Permissions;
 import services.Preferences;
 
@@ -36,11 +44,13 @@ public class MainActivity extends AppCompatActivity {
     private static final int MY_PERMISSIONS_REQUEST_RECORD_AUDIO = 1;
     private static final int REQUEST_ENABLE_BT = 2;
     private Button _recButton;
+    private ImageView _bluetoothIcon;
     private SpeechRecognizer _sr;
     private TextView _speechText;
     private boolean _dialogShowen = false;
     private BluetoothDialogFragment _bluetoothFragment;
     private Preferences _preferences;
+    private RelativeLayout _mainLoader;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +58,21 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         _preferences = new Preferences(this);
+
+        _mainLoader = (RelativeLayout)findViewById(R.id.mainLoaderLayout);
+        ImageView loader = (ImageView) findViewById(R.id.mainLoader);
+        final RotateAnimation rotateInfinity = new RotateAnimation(0, 180, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
+        rotateInfinity.setDuration(500);
+        rotateInfinity.setRepeatCount(Animation.INFINITE);
+        rotateInfinity.setInterpolator(new AccelerateInterpolator());
+        loader.setAnimation(rotateInfinity);
+
+        _bluetoothIcon = (ImageView) findViewById(R.id.bluetoothIcon);
+        final Animation flashing = new AlphaAnimation(0,1);
+        flashing.setDuration(1000);
+        flashing.setRepeatCount(Animation.INFINITE);
+        flashing.setRepeatMode(Animation.REVERSE);
+        _bluetoothIcon.setAnimation(flashing);
 
         _recButton = (Button) findViewById(R.id.button);
         _speechText = (TextView) findViewById(R.id.speechText);
@@ -65,6 +90,8 @@ public class MainActivity extends AppCompatActivity {
         } else {
             setRecButtonPermmisions();
         }
+
+        setBluetoothButton();
 
         Permissions.requestPermissions(new String []{"RECORD_AUDIO","BLUETOOTH_ADMIN","BLUETOOTH","ACCESS_COARSE_LOCATION"});
 //        checkPermissions();
@@ -109,6 +136,9 @@ public class MainActivity extends AppCompatActivity {
                 long lastDown = 0;
                 long lastDuration = 0;
                 if(event.getAction() == MotionEvent.ACTION_DOWN) {
+                    if(!Bluetooth.isConnected()) {
+                        findDevices();
+                    }
                     lastDown = System.currentTimeMillis();
                     Toast.makeText(getApplicationContext(),"button down",Toast.LENGTH_SHORT).show();
                     Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
@@ -154,6 +184,30 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 return false;
+            }
+        });
+    }
+
+    private void setBluetoothButton() {
+        _bluetoothIcon.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                List<String> requestPermission = new ArrayList<String>();
+                if(!Permissions.getPermission("RECORD_AUDIO")) {
+                    requestPermission.add("RECORD_AUDIO");
+                }
+                if(!Permissions.getPermission("BLUETOOTH_ADMIN")
+                        || !Permissions.getPermission("BLUETOOTH")
+                        || !Permissions.getPermission("ACCESS_COARSE_LOCATION")) {
+                    requestPermission.add("BLUETOOTH_ADMIN");
+                    requestPermission.add("BLUETOOTH");
+                    requestPermission.add("ACCESS_COARSE_LOCATION");
+                }
+                if(requestPermission.size() > 0) {
+                    Permissions.requestPermissions(requestPermission.toArray(new String[requestPermission.size()]));
+                } else {
+                    _bluetoothFragment.createDialog();
+                }
             }
         });
     }
@@ -268,6 +322,13 @@ public class MainActivity extends AppCompatActivity {
 
     public void showDialog() {
         _bluetoothFragment.show(getFragmentManager(), "bluetoothDevices");
+    }
+
+    public void showMainLoader() {
+        _mainLoader.setVisibility(View.VISIBLE);
+    }
+    public void hideMainLoader() {
+        _mainLoader.setVisibility(View.GONE);
     }
 
     // Create a BroadcastReceiver for ACTION_FOUND.
