@@ -139,12 +139,11 @@ public class BluetoothDialog extends AlertDialog {
                 @Override
                 public void onClick(View v) {
                     v.startAnimation(rotate);
-                    _availableListAdapter.clear();
-                    _availableMacListAdapter.clear();
-                    if(BluetoothAdapter.getDefaultAdapter() != null) {
-                        BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
+                    cleanAvailableList();
+                    if(Bluetooth.getAdapter() != null) {
+                        Bluetooth.cancelDiscovery();
                         try {
-                            if(BluetoothAdapter.getDefaultAdapter().isDiscovering()) {
+                            if(Bluetooth.isDiscovering()) {
                                 Thread.sleep(1000);
                             }
                         } catch (InterruptedException e) {
@@ -236,7 +235,7 @@ public class BluetoothDialog extends AlertDialog {
 
             _loadingLayout = new RelativeLayout(context);
             _loadingLayout.setBackgroundColor(Color.parseColor("#99000000"));
-            ImageView loading = new ImageButton(context);
+            final ImageView loading = new ImageButton(context);
             loading.setBackgroundColor(Color.TRANSPARENT);
             loading.setImageResource(R.drawable.refresh_icon);
             loading.setPadding(20, 20, 20, 20);
@@ -257,6 +256,12 @@ public class BluetoothDialog extends AlertDialog {
             _loadingLayout.setClickable(true);
             _loadingLayout.addView(loading,loadingParams);
             _loadingLayout.setVisibility(View.GONE);
+            _loadingLayout.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+                @Override
+                public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                    loading.startAnimation(rotateInfinity);
+                }
+            });
 //            EditText et = new EditText(context);
 //            etStr = et.getText().toString();
 //            TextView tv1 = new TextView(context);
@@ -542,9 +547,14 @@ public class BluetoothDialog extends AlertDialog {
             }
         }
 
-        public void cleanLists() {
-            _pairedMacListAdapter.clear();
+        public void cleanAvailableList() {
             _availableListAdapter.clear();
+            _availableMacListAdapter.clear();
+        }
+
+        public void cleanPairedList() {
+            _pairedListAdapter.clear();
+            _pairedMacListAdapter.clear();
         }
     }
 }

@@ -28,6 +28,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -61,10 +62,11 @@ public class MainActivity extends AppCompatActivity {
 
         _mainLoader = (RelativeLayout)findViewById(R.id.mainLoaderLayout);
         ImageView loader = (ImageView) findViewById(R.id.mainLoader);
+//        loader.setDrawingCacheEnabled(true);
         final RotateAnimation rotateInfinity = new RotateAnimation(0, 180, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
         rotateInfinity.setDuration(500);
         rotateInfinity.setRepeatCount(Animation.INFINITE);
-        rotateInfinity.setInterpolator(new AccelerateInterpolator());
+        rotateInfinity.setInterpolator(new LinearInterpolator());
         loader.setAnimation(rotateInfinity);
 
         _bluetoothIcon = (ImageView) findViewById(R.id.bluetoothIcon);
@@ -344,4 +346,18 @@ public class MainActivity extends AppCompatActivity {
 //            }
 //        }
 //    };
+
+    @Override
+    public void onBackPressed(){
+        if(_mainLoader.getVisibility() == View.VISIBLE) {
+            hideMainLoader();
+            try {
+                Bluetooth.closeConnection();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            super.onBackPressed();
+        }
+    }
 }

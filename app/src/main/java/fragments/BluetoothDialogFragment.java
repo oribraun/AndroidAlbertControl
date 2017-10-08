@@ -114,6 +114,19 @@ public class BluetoothDialogFragment extends DialogFragment implements Bluetooth
             _dialog.setCanceledOnTouchOutside(false);
         }
 
+        _dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                dialog.dismiss();
+                _builder.hideLoader();
+                try {
+                    Bluetooth.closeConnection();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
 
         if (Permissions.getPermission("BLUETOOTH_ADMIN")) {
             if (Bluetooth.getAdapter() == null) {
@@ -164,7 +177,8 @@ public class BluetoothDialogFragment extends DialogFragment implements Bluetooth
     }
 
     private void startSearch() {
-        _builder.cleanLists();
+        _builder.cleanPairedList();
+        _builder.cleanAvailableList();
         Bluetooth.cancelDiscovery();
         Set<BluetoothDevice> pairedDevices = Bluetooth.getBondedDevices();
 

@@ -16,8 +16,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Set;
 import java.util.UUID;
 
-import dialogs.BluetoothDialog;
-import fragments.BluetoothDialogFragment;
 import interfaces.BluetoothCallbacks;
 
 /**
@@ -100,6 +98,9 @@ public class Bluetooth implements BluetoothCallbacks {
     public static boolean isConnected() {
         return _bluetoothSocket.isConnected();
     }
+    public static boolean isDiscovering() {
+        return _bluetoothAdapter.isDiscovering();
+    }
 
     public static boolean isEnabled() {
         return _bluetoothAdapter.isEnabled();
@@ -122,6 +123,12 @@ public class Bluetooth implements BluetoothCallbacks {
             byte[] msgBuffer = str.getBytes();
             outStream.write(msgBuffer);
             outStream.flush();
+        }
+    }
+
+    public static void closeConnection() throws IOException {
+        if(_bluetoothSocket != null) {
+            _bluetoothSocket.close();
         }
     }
     @Override
