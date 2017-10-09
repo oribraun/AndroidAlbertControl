@@ -13,6 +13,7 @@ import android.os.ParcelUuid;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Set;
 import java.util.UUID;
 
@@ -63,9 +64,9 @@ public class Bluetooth implements BluetoothCallbacks {
 //            if(uuids != null) {
 //                UUID uuid = uuids[uuids.length - 1].getUuid();
 //                _bluetoothSocket = device.createRfcommSocketToServiceRecord(uuid);
-//                _bluetoothSocket = device.createInsecureRfcommSocketToServiceRecord(uuid);
+                _bluetoothSocket = device.createRfcommSocketToServiceRecord(UUID.fromString("00001101-0000-1000-8000-00805f9b34fb"));
 //            }
-            _bluetoothSocket = (android.bluetooth.BluetoothSocket) device.getClass().getMethod("createRfcommSocket", new Class[]{int.class}).invoke(device, 1);
+//            _bluetoothSocket = (android.bluetooth.BluetoothSocket) device.getClass().getMethod("createRfcommSocket", new Class[]{int.class}).invoke(device, 1);
         }
     }
 
@@ -96,7 +97,11 @@ public class Bluetooth implements BluetoothCallbacks {
     }
 
     public static boolean isConnected() {
-        return _bluetoothSocket.isConnected();
+        if(_bluetoothSocket != null) {
+            return _bluetoothSocket.isConnected();
+        } else {
+            return false;
+        }
     }
     public static boolean isDiscovering() {
         return _bluetoothAdapter.isDiscovering();
@@ -120,7 +125,16 @@ public class Bluetooth implements BluetoothCallbacks {
     public static void socketSendMessage(String str) throws IOException {
         if(_bluetoothSocket.isConnected()) {
             OutputStream outStream = _bluetoothSocket.getOutputStream();
-            byte[] msgBuffer = str.getBytes();
+            byte[] msgBuffer = str.trim().getBytes();
+            outStream.write(msgBuffer);
+            outStream.flush();
+        }
+    }
+
+    public static void socketSendMessage(ArrayList str) throws IOException {
+        if(_bluetoothSocket.isConnected()) {
+            OutputStream outStream = _bluetoothSocket.getOutputStream();
+            byte[] msgBuffer = str.toString().replace('[', ' ').replace(']', ' ').trim().getBytes();
             outStream.write(msgBuffer);
             outStream.flush();
         }

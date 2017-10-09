@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import dialogs.BluetoothDialog;
 import interfaces.BluetoothCallbacks;
 import services.Bluetooth;
+import services.Config;
 import services.Permissions;
 import services.Preferences;
 
@@ -32,6 +33,7 @@ import com.dev.ori.albertcontrol.R;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Set;
 import java.util.UUID;
 
@@ -362,7 +364,19 @@ public class BluetoothDialogFragment extends DialogFragment implements Bluetooth
         try {
             Bluetooth.socketSendMessage(msg);
         } catch (IOException e) {
+            Log.e(Config.TAG + "send message",e.getMessage());
             e.printStackTrace();
+            onCallbackError();
+        }
+    }
+
+    public void sendBluetoothMessage(ArrayList list) {
+        try {
+            Bluetooth.socketSendMessage(list);
+        } catch (IOException e) {
+            Log.e(Config.TAG + "send message",e.getMessage());
+            e.printStackTrace();
+            onCallbackError();
         }
     }
 

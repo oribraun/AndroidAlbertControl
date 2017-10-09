@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.media.AudioManager;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.support.v4.app.ActivityCompat;
@@ -48,7 +49,6 @@ public class MainActivity extends AppCompatActivity {
     private ImageView _bluetoothIcon;
     private SpeechRecognizer _sr;
     private TextView _speechText;
-    private boolean _dialogShowen = false;
     private BluetoothDialogFragment _bluetoothFragment;
     private Preferences _preferences;
     private RelativeLayout _mainLoader;
@@ -84,8 +84,9 @@ public class MainActivity extends AppCompatActivity {
             && Permissions.getPermission("ACCESS_COARSE_LOCATION")) {
             findDevices();
         }
-        if(Permissions.getPermission("RECORD_AUDIO") &&
-                Permissions.getPermission("BLUETOOTH_ADMIN")
+        if(Permissions.getPermission("RECORD_AUDIO")
+                && Permissions.getPermission("MODIFY_AUDIO_SETTINGS")
+                && Permissions.getPermission("BLUETOOTH_ADMIN")
                 && Permissions.getPermission("BLUETOOTH")
                 && Permissions.getPermission("ACCESS_COARSE_LOCATION")) {
             setRecButton();
@@ -95,7 +96,7 @@ public class MainActivity extends AppCompatActivity {
 
         setBluetoothButton();
 
-        Permissions.requestPermissions(new String []{"RECORD_AUDIO","BLUETOOTH_ADMIN","BLUETOOTH","ACCESS_COARSE_LOCATION"});
+        Permissions.requestPermissions(new String []{"RECORD_AUDIO","MODIFY_AUDIO_SETTINGS","BLUETOOTH_ADMIN","BLUETOOTH","ACCESS_COARSE_LOCATION"});
 //        checkPermissions();
     }
 
@@ -137,9 +138,16 @@ public class MainActivity extends AppCompatActivity {
             public boolean onTouch(View v, MotionEvent event) {
                 long lastDown = 0;
                 long lastDuration = 0;
+                int current_volume = 0;
+                int ringer_mode = 0;
+                final AudioManager mAlramMAnager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
                 if(event.getAction() == MotionEvent.ACTION_DOWN) {
+                    current_volume = mAlramMAnager.getStreamVolume(AudioManager.STREAM_MUSIC);
+                    mAlramMAnager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
+                    ringer_mode = mAlramMAnager.getRingerMode();
+//                    mAlramMAnager.setRingerMode(AudioManager.RINGER_MODE_VIBRATE);
                     if(!Bluetooth.isConnected()) {
-                        findDevices();
+                        _bluetoothFragment.createDialog();
                     }
                     lastDown = System.currentTimeMillis();
                     Toast.makeText(getApplicationContext(),"button down",Toast.LENGTH_SHORT).show();
@@ -147,7 +155,7 @@ public class MainActivity extends AppCompatActivity {
                     intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
                     intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE,"voice.recognition.test");
 
-                    intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS,5);
+                    intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS,10);
                     _sr.startListening(intent);
                     Log.i("started","started");
                 } else if (event.getAction() == MotionEvent.ACTION_UP) {
@@ -155,6 +163,19 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(getApplicationContext(),"button up",Toast.LENGTH_SHORT).show();
                     _sr.stopListening();
                     _speechText.setText("");
+                    Thread t = new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                Thread.sleep(500);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            mAlramMAnager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE,0);
+                        }
+                    });
+                    t.start();
+//                    mAlramMAnager.setRingerMode(ringer_mode);
                     Log.i("stopped","stopped");
                 }
                 return false;
@@ -198,6 +219,9 @@ public class MainActivity extends AppCompatActivity {
                 if(!Permissions.getPermission("RECORD_AUDIO")) {
                     requestPermission.add("RECORD_AUDIO");
                 }
+                if(!Permissions.getPermission("MODIFY_AUDIO_SETTINGS")) {
+                    requestPermission.add("MODIFY_AUDIO_SETTINGS");
+                }
                 if(!Permissions.getPermission("BLUETOOTH_ADMIN")
                         || !Permissions.getPermission("BLUETOOTH")
                         || !Permissions.getPermission("ACCESS_COARSE_LOCATION")) {
@@ -219,13 +243,14 @@ public class MainActivity extends AppCompatActivity {
                                            String permissions[], int[] grantResults) {
         Map<String,Boolean> curr_permissions = Permissions.onRequestPermissionsResult(requestCode, permissions, grantResults);
         boolean RECORD_AUDIO = curr_permissions.get("RECORD_AUDIO");
+        boolean MODIFY_AUDIO_SETTINGS = curr_permissions.get("MODIFY_AUDIO_SETTINGS");
         boolean BLUETOOTH_ADMIN = curr_permissions.get("BLUETOOTH_ADMIN");
         boolean BLUETOOTH = curr_permissions.get("BLUETOOTH");
         boolean ACCESS_COARSE_LOCATION = curr_permissions.get("ACCESS_COARSE_LOCATION");
         if(BLUETOOTH && BLUETOOTH_ADMIN && ACCESS_COARSE_LOCATION) {
             findDevices();
         }
-        if(RECORD_AUDIO && BLUETOOTH && BLUETOOTH_ADMIN && ACCESS_COARSE_LOCATION) {
+        if(MODIFY_AUDIO_SETTINGS && RECORD_AUDIO && BLUETOOTH && BLUETOOTH_ADMIN && ACCESS_COARSE_LOCATION) {
             setRecButton();
         }
 //        switch (requestCode) {
@@ -257,11 +282,10 @@ public class MainActivity extends AppCompatActivity {
 //        if(bluetoothMac != "") {
 //
 //        } else {
-            if (!_dialogShowen) {
+            if (_bluetoothFragment == null) {
                 _bluetoothFragment = new BluetoothDialogFragment();
-                _bluetoothFragment.show(getFragmentManager(), "bluetoothDevices");
-                _dialogShowen = true;
             }
+            _bluetoothFragment.show(getFragmentManager(), "bluetoothDevices");
 //        }
 
 //        if(Permissions.getPermission("BLUETOOTH_ADMIN")) {
@@ -357,6 +381,7 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         } else {
+
             super.onBackPressed();
         }
     }

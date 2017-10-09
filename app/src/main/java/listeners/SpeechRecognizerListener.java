@@ -8,9 +8,11 @@ import android.widget.TextView;
 
 import org.w3c.dom.Text;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 import fragments.BluetoothDialogFragment;
+import services.Bluetooth;
 
 /**
  * Created by ori on 9/24/2017.
@@ -18,7 +20,7 @@ import fragments.BluetoothDialogFragment;
 
 public class SpeechRecognizerListener implements RecognitionListener
 {
-    private static final String TAG = "speech Recognizer";
+    private static final String TAG = "Albert Recognizer";
     private boolean _speechReady = false;
     private TextView _speechText;
     private BluetoothDialogFragment _bluetoothFragment;
@@ -82,25 +84,26 @@ public class SpeechRecognizerListener implements RecognitionListener
             String str = new String();
             Log.d(TAG, "onResults " + results);
             ArrayList data = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-            boolean foundCommand = false;
-            String foundText = "";
-            for (int i = 0; i < data.size() && !foundCommand; i++) {
-                Log.d(TAG, "result " + data.get(i));
-                str += data.get(i).toString();
-                for(int j = 0; j < _albertCommands.length; j++) {
-                    if(_albertCommands[j].toLowerCase().equals(data.get(i).toString().toLowerCase())) {
-                        Log.i("results",_albertCommands[j]);
-                        foundText = _albertCommands[j];
-                        foundCommand = true;
-                    }
-                }
-            }
-            if(foundCommand) {
-                _speechText.setText("results: " + foundText);
-                _bluetoothFragment.sendBluetoothMessage(foundText);
-            } else {
-                _speechText.setText("not found");
-            }
+            _bluetoothFragment.sendBluetoothMessage(data);
+//            boolean foundCommand = false;
+//            String foundText = "";
+//            for (int i = 0; i < data.size() && !foundCommand; i++) {
+//                Log.d(TAG, "result " + data.get(i));
+//                str += data.get(i).toString();
+//                for(int j = 0; j < _albertCommands.length; j++) {
+//                    if(_albertCommands[j].toLowerCase().equals(data.get(i).toString().toLowerCase())) {
+//                        Log.i(TAG,_albertCommands[j]);
+//                        foundText = _albertCommands[j];
+//                        foundCommand = true;
+//                    }
+//                }
+//            }
+//            if(foundCommand) {
+//                _speechText.setText("results: " + foundText);
+//                _bluetoothFragment.sendBluetoothMessage(foundText);
+//            } else {
+//                _speechText.setText("not found");
+//            }
         }
     }
     public void onPartialResults(Bundle partialResults)

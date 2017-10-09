@@ -41,6 +41,7 @@ import java.util.UUID;
 import fragments.BluetoothDialogFragment;
 import interfaces.BluetoothCallbacks;
 import services.Bluetooth;
+import services.Config;
 import services.Preferences;
 
 import static android.R.attr.data;
@@ -291,6 +292,14 @@ public class BluetoothDialog extends AlertDialog {
         }
 
         public void onListItemClick(int position, int type) {
+            try {
+                Bluetooth.killSocket();
+                Thread.sleep(1000);
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             if(Bluetooth.getSocket() == null) {
                 Bluetooth.cancelDiscovery();
                 try {
@@ -532,6 +541,7 @@ public class BluetoothDialog extends AlertDialog {
         @Override
         public void onCallbackSuccess() {
             dialogErrorMessage("connected to - " + Preferences.getString("bluetoothName"));
+            Log.i(Config.TAG + "connect to", Preferences.getString("bluetoothName"));
             BluetoothDialogFragment.dialogDismiss();
             hideLoader();
         }
@@ -539,10 +549,12 @@ public class BluetoothDialog extends AlertDialog {
         @Override
         public void onCallbackError() {
             dialogErrorMessage("could not connect device");
+            Log.e(Config.TAG + "failed connect", Preferences.getString("bluetoothName"));
             try {
                 Bluetooth.killSocket();
                 hideLoader();
             } catch (IOException e1) {
+                Log.e("error killSocket - ", e1.getMessage());
                 e1.printStackTrace();
             }
         }
