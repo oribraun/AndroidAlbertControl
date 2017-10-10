@@ -140,7 +140,6 @@ public class BluetoothDialog extends AlertDialog {
                 @Override
                 public void onClick(View v) {
                     v.startAnimation(rotate);
-                    cleanAvailableList();
                     if(Bluetooth.getAdapter() != null) {
                         Bluetooth.cancelDiscovery();
                         try {
@@ -150,7 +149,7 @@ public class BluetoothDialog extends AlertDialog {
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
-                        BluetoothAdapter.getDefaultAdapter().startDiscovery();
+                        Bluetooth.startDiscovery();
                     }
 //                    _availableSpinner.setVisibility(View.VISIBLE);
                 }
@@ -335,12 +334,13 @@ public class BluetoothDialog extends AlertDialog {
 
                 } catch (Exception e) {
                     Log.e("ERROR", "Socket's create() method failed", e);
+                    onCallbackError();
                     e.printStackTrace();
                 }
 //                try {
                     // Connect to the remote device through the socket. This call blocks
                     // until it succeeds or throws an exception.
-                    if(Bluetooth.getSocket() != null) {
+//                    if(Bluetooth.getSocket() != null) {
 //                        Thread t = new Thread(){
 //                            public void run(){
 //                                try {
@@ -416,9 +416,9 @@ public class BluetoothDialog extends AlertDialog {
 //                                            dialog.cancel();
 //                                        }
 //                                    });
-                    } else {
-                        dialogErrorMessage("no bluetooth device 2");
-                    }
+//                    } else {
+//                        dialogErrorMessage("no bluetooth device 2");
+//                    }
 //                } catch (Exception connectException) {
 //                    // Unable to connect; close the socket and return.
 //                    try {
@@ -548,7 +548,7 @@ public class BluetoothDialog extends AlertDialog {
 
         @Override
         public void onCallbackError() {
-            dialogErrorMessage("could not connect device");
+            dialogErrorMessage("could not connect device, please make sure pc software is running");
             Log.e(Config.TAG + "failed connect", Preferences.getString("bluetoothName"));
             try {
                 Bluetooth.killSocket();
@@ -562,11 +562,13 @@ public class BluetoothDialog extends AlertDialog {
         public void cleanAvailableList() {
             _availableListAdapter.clear();
             _availableMacListAdapter.clear();
+            _availableListAdapter.notifyDataSetChanged();
         }
 
         public void cleanPairedList() {
             _pairedListAdapter.clear();
             _pairedMacListAdapter.clear();
+            _pairedListAdapter.notifyDataSetChanged();
         }
     }
 }

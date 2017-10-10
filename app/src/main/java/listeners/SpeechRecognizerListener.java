@@ -75,7 +75,7 @@ public class SpeechRecognizerListener implements RecognitionListener
         Log.d(TAG,  "error " +  error);
         if(_speechReady) {
 //                _speechText.setText("error " + error);
-            _speechText.setText("not found");
+//            _speechText.setText("not found");
         }
     }
     public void onResults(Bundle results)

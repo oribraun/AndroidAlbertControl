@@ -1,5 +1,6 @@
 package fragments;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import dialogs.BluetoothDialog;
 import interfaces.BluetoothCallbacks;
@@ -23,6 +24,7 @@ import android.os.Bundle;
 import android.os.ParcelUuid;
 import android.os.Parcelable;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -54,7 +56,10 @@ public class BluetoothDialogFragment extends DialogFragment implements Bluetooth
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         // Use the Builder class for convenient dialog construction
-        _builder = new BluetoothDialog.Builder(getActivity());
+        Activity a = getActivity();
+        if(_builder == null) {
+            _builder = new BluetoothDialog.Builder(getActivity());
+        }
 //        _Adapter = new ArrayAdapter<String>(this.getActivity().getApplicationContext(), android.R.layout.select_dialog_item);
 //        _Adapter.add("a");
 //        _Adapter.add("b");
@@ -116,18 +121,39 @@ public class BluetoothDialogFragment extends DialogFragment implements Bluetooth
             _dialog.setCanceledOnTouchOutside(false);
         }
 
-        _dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
-            @Override
-            public void onCancel(DialogInterface dialog) {
-                dialog.dismiss();
-                _builder.hideLoader();
-                try {
-                    Bluetooth.closeConnection();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
+//        _dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+//            @Override
+//            public void onCancel(DialogInterface dialog) {
+//                dialog.dismiss();
+//                _builder.hideLoader();
+//                try {
+//                    Bluetooth.closeConnection();
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        });
+//        _dialog.setOnKeyListener(new DialogInterface.OnKeyListener()
+//        {
+//            @Override
+//            public boolean onKey(android.content.DialogInterface dialog, int keyCode,android.view.KeyEvent event) {
+//
+//                if ((keyCode ==  android.view.KeyEvent.KEYCODE_BACK))
+//                {
+//                    //Hide your keyboard here!!!
+//                    dialog.dismiss();
+//                    _builder.hideLoader();
+//                    try {
+//                        Bluetooth.closeConnection();
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                    return true;
+//                }
+//                else
+//                    return false; // pass on to be processed as normal
+//            }
+//        });
 
 
         if (Permissions.getPermission("BLUETOOTH_ADMIN")) {
@@ -254,6 +280,7 @@ public class BluetoothDialogFragment extends DialogFragment implements Bluetooth
 ////                _builder.availableFinishLoading();
             }
             else if(BluetoothAdapter.ACTION_DISCOVERY_STARTED.equals(action)) {
+                _builder.cleanAvailableList();
                 _builder.availableStartLoading();
                 _builder.startSearching();
             }
@@ -401,5 +428,18 @@ public class BluetoothDialogFragment extends DialogFragment implements Bluetooth
         ((MainActivity) getActivity()).hideMainLoader();
         createDialog();
         _builder.onCallbackError();
+    }
+
+    @Override
+    public void onDismiss(DialogInterface dialog) {
+        super.onDismiss(dialog);
+        //your code hear
+        _builder.hideLoader();
+        try {
+            Bluetooth.closeConnection();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        dialog.cancel();
     }
 }

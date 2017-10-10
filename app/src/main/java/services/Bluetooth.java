@@ -59,7 +59,7 @@ public class Bluetooth implements BluetoothCallbacks {
 
     public static void setSocket(String mac) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, IOException {
         BluetoothDevice device = _bluetoothAdapter.getRemoteDevice(mac);
-        if(device.fetchUuidsWithSdp()) {
+//        if(device.fetchUuidsWithSdp()) {
 //            ParcelUuid[] uuids = device.getUuids();
 //            if(uuids != null) {
 //                UUID uuid = uuids[uuids.length - 1].getUuid();
@@ -67,7 +67,7 @@ public class Bluetooth implements BluetoothCallbacks {
                 _bluetoothSocket = device.createRfcommSocketToServiceRecord(UUID.fromString("00001101-0000-1000-8000-00805f9b34fb"));
 //            }
 //            _bluetoothSocket = (android.bluetooth.BluetoothSocket) device.getClass().getMethod("createRfcommSocket", new Class[]{int.class}).invoke(device, 1);
-        }
+//        }
     }
 
     public void connect() throws IOException {
@@ -78,7 +78,12 @@ public class Bluetooth implements BluetoothCallbacks {
                         if(_bluetoothSocket != null) {
                             boolean is_connected = _bluetoothSocket.isConnected();
                             _bluetoothSocket.connect();
-                            onCallbackSuccess();
+                            boolean isConnected = isConnected();
+                            if(isConnected) {
+                                onCallbackSuccess();
+                            } else {
+                                onCallbackError();
+                            }
                         }
                     } catch (Exception e) {
                         e.printStackTrace();

@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.media.AudioManager;
+import android.os.Vibrator;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.support.v4.app.ActivityCompat;
@@ -21,8 +22,11 @@ import android.view.View;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
+import android.view.animation.AnimationSet;
+import android.view.animation.AnimationUtils;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.RotateAnimation;
+import android.view.animation.ScaleAnimation;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
@@ -86,6 +90,7 @@ public class MainActivity extends AppCompatActivity {
         }
         if(Permissions.getPermission("RECORD_AUDIO")
                 && Permissions.getPermission("MODIFY_AUDIO_SETTINGS")
+                && Permissions.getPermission("VIBRATE")
                 && Permissions.getPermission("BLUETOOTH_ADMIN")
                 && Permissions.getPermission("BLUETOOTH")
                 && Permissions.getPermission("ACCESS_COARSE_LOCATION")) {
@@ -96,7 +101,7 @@ public class MainActivity extends AppCompatActivity {
 
         setBluetoothButton();
 
-        Permissions.requestPermissions(new String []{"RECORD_AUDIO","MODIFY_AUDIO_SETTINGS","BLUETOOTH_ADMIN","BLUETOOTH","ACCESS_COARSE_LOCATION"});
+        Permissions.requestPermissions(new String []{"RECORD_AUDIO","MODIFY_AUDIO_SETTINGS","VIBRATE","BLUETOOTH_ADMIN","BLUETOOTH","ACCESS_COARSE_LOCATION"});
 //        checkPermissions();
     }
 
@@ -133,24 +138,40 @@ public class MainActivity extends AppCompatActivity {
 //        }
 //    }
     private void setRecButton() {
+        final AnimationSet animations = new AnimationSet(false);
+        animations.setInterpolator(new LinearInterpolator());
+        animations.setRepeatCount(Animation.INFINITE);
+        final Animation rotateInfinty = new RotateAnimation(0,360,Animation.RELATIVE_TO_SELF,0.5f,Animation.RELATIVE_TO_SELF,0.5f);
+        rotateInfinty.setRepeatCount(Animation.INFINITE);
+        rotateInfinty.setDuration(1200);
+        rotateInfinty.setInterpolator(new LinearInterpolator());
+
+        final Animation scaleInfinity = new ScaleAnimation(1f,1.2f,1f,1.2f,Animation.RELATIVE_TO_SELF,0.5f,Animation.RELATIVE_TO_SELF,0.5f);
+        scaleInfinity.setRepeatCount(Animation.INFINITE);
+        scaleInfinity.setRepeatMode(Animation.REVERSE);
+        scaleInfinity.setDuration(750);
+        animations.addAnimation(rotateInfinty);
+        animations.addAnimation(scaleInfinity);
         _recButton.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 long lastDown = 0;
                 long lastDuration = 0;
                 int current_volume = 0;
-                int ringer_mode = 0;
                 final AudioManager mAlramMAnager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
                 if(event.getAction() == MotionEvent.ACTION_DOWN) {
                     current_volume = mAlramMAnager.getStreamVolume(AudioManager.STREAM_MUSIC);
                     mAlramMAnager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0);
-                    ringer_mode = mAlramMAnager.getRingerMode();
+                    ((Vibrator)getSystemService(VIBRATOR_SERVICE)).vibrate(100);
+                    scaleInfinity.setRepeatCount(Animation.INFINITE);
+                    scaleInfinity.setRepeatMode(Animation.REVERSE);
+                    _recButton.startAnimation(animations);
 //                    mAlramMAnager.setRingerMode(AudioManager.RINGER_MODE_VIBRATE);
                     if(!Bluetooth.isConnected()) {
-                        _bluetoothFragment.createDialog();
+                        showDialog();
                     }
                     lastDown = System.currentTimeMillis();
-                    Toast.makeText(getApplicationContext(),"button down",Toast.LENGTH_SHORT).show();
+//                    Toast.makeText(getApplicationContext(),"button down",Toast.LENGTH_SHORT).show();
                     Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
                     intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
                     intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE,"voice.recognition.test");
@@ -160,14 +181,17 @@ public class MainActivity extends AppCompatActivity {
                     Log.i("started","started");
                 } else if (event.getAction() == MotionEvent.ACTION_UP) {
                     lastDuration = System.currentTimeMillis() - lastDown;
-                    Toast.makeText(getApplicationContext(),"button up",Toast.LENGTH_SHORT).show();
+//                    Toast.makeText(getApplicationContext(),"button up",Toast.LENGTH_SHORT).show();
                     _sr.stopListening();
                     _speechText.setText("");
+                    rotateInfinty.cancel();
+                    scaleInfinity.setRepeatCount(0);
+                    ((Vibrator)getSystemService(VIBRATOR_SERVICE)).vibrate(100);
                     Thread t = new Thread(new Runnable() {
                         @Override
                         public void run() {
                             try {
-                                Thread.sleep(500);
+                                Thread.sleep(600);
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
@@ -194,6 +218,12 @@ public class MainActivity extends AppCompatActivity {
                     List<String> requestPermission = new ArrayList<String>();
                     if(!Permissions.getPermission("RECORD_AUDIO")) {
                         requestPermission.add("RECORD_AUDIO");
+                    }
+                    if(!Permissions.getPermission("MODIFY_AUDIO_SETTINGS")) {
+                        requestPermission.add("MODIFY_AUDIO_SETTINGS");
+                    }
+                    if(!Permissions.getPermission("VIBRATE")) {
+                        requestPermission.add("VIBRATE");
                     }
                     if(!Permissions.getPermission("BLUETOOTH_ADMIN")
                             || !Permissions.getPermission("BLUETOOTH")
@@ -222,6 +252,9 @@ public class MainActivity extends AppCompatActivity {
                 if(!Permissions.getPermission("MODIFY_AUDIO_SETTINGS")) {
                     requestPermission.add("MODIFY_AUDIO_SETTINGS");
                 }
+                if(!Permissions.getPermission("VIBRATE")) {
+                    requestPermission.add("VIBRATE");
+                }
                 if(!Permissions.getPermission("BLUETOOTH_ADMIN")
                         || !Permissions.getPermission("BLUETOOTH")
                         || !Permissions.getPermission("ACCESS_COARSE_LOCATION")) {
@@ -232,7 +265,7 @@ public class MainActivity extends AppCompatActivity {
                 if(requestPermission.size() > 0) {
                     Permissions.requestPermissions(requestPermission.toArray(new String[requestPermission.size()]));
                 } else {
-                    _bluetoothFragment.createDialog();
+                    showDialog();
                 }
             }
         });
@@ -244,13 +277,14 @@ public class MainActivity extends AppCompatActivity {
         Map<String,Boolean> curr_permissions = Permissions.onRequestPermissionsResult(requestCode, permissions, grantResults);
         boolean RECORD_AUDIO = curr_permissions.get("RECORD_AUDIO");
         boolean MODIFY_AUDIO_SETTINGS = curr_permissions.get("MODIFY_AUDIO_SETTINGS");
+        boolean VIBRATE = curr_permissions.get("VIBRATE");
         boolean BLUETOOTH_ADMIN = curr_permissions.get("BLUETOOTH_ADMIN");
         boolean BLUETOOTH = curr_permissions.get("BLUETOOTH");
         boolean ACCESS_COARSE_LOCATION = curr_permissions.get("ACCESS_COARSE_LOCATION");
         if(BLUETOOTH && BLUETOOTH_ADMIN && ACCESS_COARSE_LOCATION) {
             findDevices();
         }
-        if(MODIFY_AUDIO_SETTINGS && RECORD_AUDIO && BLUETOOTH && BLUETOOTH_ADMIN && ACCESS_COARSE_LOCATION) {
+        if(VIBRATE && MODIFY_AUDIO_SETTINGS && RECORD_AUDIO && BLUETOOTH && BLUETOOTH_ADMIN && ACCESS_COARSE_LOCATION) {
             setRecButton();
         }
 //        switch (requestCode) {
@@ -285,7 +319,7 @@ public class MainActivity extends AppCompatActivity {
             if (_bluetoothFragment == null) {
                 _bluetoothFragment = new BluetoothDialogFragment();
             }
-            _bluetoothFragment.show(getFragmentManager(), "bluetoothDevices");
+            showDialog();
 //        }
 
 //        if(Permissions.getPermission("BLUETOOTH_ADMIN")) {
