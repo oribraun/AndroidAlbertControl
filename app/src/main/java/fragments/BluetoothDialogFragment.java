@@ -11,6 +11,7 @@ import services.Preferences;
 
 import android.app.Dialog;
 import android.app.DialogFragment;
+import android.app.FragmentManager;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
@@ -52,11 +53,12 @@ public class BluetoothDialogFragment extends DialogFragment implements Bluetooth
     private static final int REQUEST_ENABLE_BT = 1;
     private String _bluetoothMac;
     private String _bluetoothName;
+    private Activity _mainActivity;
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         // Use the Builder class for convenient dialog construction
-        Activity a = getActivity();
+        _mainActivity =  getActivity();
         if(_builder == null) {
             _builder = new BluetoothDialog.Builder(getActivity());
         }
@@ -227,7 +229,7 @@ public class BluetoothDialogFragment extends DialogFragment implements Bluetooth
         filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
         filter.addAction(BluetoothDevice.ACTION_PAIRING_REQUEST);
         filter.addAction(BluetoothDevice.ACTION_UUID);
-        getActivity().registerReceiver(mReceiver, filter);
+        _mainActivity.registerReceiver(mReceiver, filter);
         boolean discoverySuccess = Bluetooth.startDiscovery();
         if(discoverySuccess) {
 //                    _builder.toggleSearching();
@@ -293,6 +295,8 @@ public class BluetoothDialogFragment extends DialogFragment implements Bluetooth
             }
             else if(BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
                 boolean connected = device.getBondState() == BluetoothDevice.BOND_BONDED;
+                boolean connecting = device.getBondState() == BluetoothDevice.BOND_BONDING;
+                boolean disconnect = device.getBondState() == BluetoothDevice.BOND_NONE;
 //                if(!connected) {
 //                    try {
 //                        _builder.setBluetoothConnected(false);
@@ -304,7 +308,9 @@ public class BluetoothDialogFragment extends DialogFragment implements Bluetooth
 //                    _builder.setBluetoothConnected(true);
 //                    _dialog.dismiss();
 //                }
-//                Log.v("connected = " , String.valueOf(connected));
+                Log.v("connected ACL = " , String.valueOf(connected));
+                Log.v("connecting ACL = " , String.valueOf(connecting));
+                Log.v("disconnect ACL = " , String.valueOf(disconnect));
             }
             else if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
                 boolean connected = device.getBondState() == BluetoothDevice.BOND_BONDED;
@@ -338,6 +344,8 @@ public class BluetoothDialogFragment extends DialogFragment implements Bluetooth
 //                    }
                 }
                 Log.v("connected = " , String.valueOf(connected));
+                Log.v("connecting = " , String.valueOf(connecting));
+                Log.v("disconnect = " , String.valueOf(disconnect));
             }
             else if (BluetoothDevice.ACTION_PAIRING_REQUEST.equals(action)) {
                 try {
@@ -435,11 +443,15 @@ public class BluetoothDialogFragment extends DialogFragment implements Bluetooth
         super.onDismiss(dialog);
         //your code hear
         _builder.hideLoader();
-        try {
-            Bluetooth.closeConnection();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        try {
+//            Bluetooth.closeConnection();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
         dialog.cancel();
+    }
+    @Override
+    public void show(FragmentManager manager, String tag) {
+        super.show(manager,tag);
     }
 }

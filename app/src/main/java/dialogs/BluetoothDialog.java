@@ -142,13 +142,6 @@ public class BluetoothDialog extends AlertDialog {
                     v.startAnimation(rotate);
                     if(Bluetooth.getAdapter() != null) {
                         Bluetooth.cancelDiscovery();
-                        try {
-                            if(Bluetooth.isDiscovering()) {
-                                Thread.sleep(1000);
-                            }
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
                         Bluetooth.startDiscovery();
                     }
 //                    _availableSpinner.setVisibility(View.VISIBLE);
@@ -293,21 +286,11 @@ public class BluetoothDialog extends AlertDialog {
         public void onListItemClick(int position, int type) {
             try {
                 Bluetooth.killSocket();
-                Thread.sleep(1000);
             } catch (IOException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
                 e.printStackTrace();
             }
             if(Bluetooth.getSocket() == null) {
                 Bluetooth.cancelDiscovery();
-                try {
-                    if(Bluetooth.getAdapter().isDiscovering()) {
-                        Thread.sleep(1000);
-                    }
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
                 availableFinishLoading();
                 String mac = "";
                 String name = "";

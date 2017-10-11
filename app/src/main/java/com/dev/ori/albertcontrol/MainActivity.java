@@ -35,6 +35,7 @@ import android.widget.Toast;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -141,16 +142,18 @@ public class MainActivity extends AppCompatActivity {
         final AnimationSet animations = new AnimationSet(false);
         animations.setInterpolator(new LinearInterpolator());
         animations.setRepeatCount(Animation.INFINITE);
-        final Animation rotateInfinty = new RotateAnimation(0,360,Animation.RELATIVE_TO_SELF,0.5f,Animation.RELATIVE_TO_SELF,0.5f);
-        rotateInfinty.setRepeatCount(Animation.INFINITE);
-        rotateInfinty.setDuration(1200);
-        rotateInfinty.setInterpolator(new LinearInterpolator());
+//        final Animation rotateInfinty = new RotateAnimation(0,360,Animation.RELATIVE_TO_SELF,0.5f,Animation.RELATIVE_TO_SELF,0.5f);
+//        rotateInfinty.setRepeatCount(Animation.INFINITE);
+//        rotateInfinty.setDuration(1200);
+//        rotateInfinty.setInterpolator(new LinearInterpolator());
 
         final Animation scaleInfinity = new ScaleAnimation(1f,1.2f,1f,1.2f,Animation.RELATIVE_TO_SELF,0.5f,Animation.RELATIVE_TO_SELF,0.5f);
         scaleInfinity.setRepeatCount(Animation.INFINITE);
         scaleInfinity.setRepeatMode(Animation.REVERSE);
         scaleInfinity.setDuration(750);
-        animations.addAnimation(rotateInfinty);
+        final long[] scaleStartTime = new long[1];
+        final long[] scaleEndTime = new long[1];
+//        animations.addAnimation(rotateInfinty);
         animations.addAnimation(scaleInfinity);
         _recButton.setOnTouchListener(new View.OnTouchListener() {
             @Override
@@ -165,7 +168,9 @@ public class MainActivity extends AppCompatActivity {
                     ((Vibrator)getSystemService(VIBRATOR_SERVICE)).vibrate(100);
                     scaleInfinity.setRepeatCount(Animation.INFINITE);
                     scaleInfinity.setRepeatMode(Animation.REVERSE);
+//                    rotateInfinty.setRepeatCount(Animation.INFINITE);
                     _recButton.startAnimation(animations);
+                    scaleStartTime[0] = System.currentTimeMillis();
 //                    mAlramMAnager.setRingerMode(AudioManager.RINGER_MODE_VIBRATE);
                     if(!Bluetooth.isConnected()) {
                         showDialog();
@@ -184,8 +189,15 @@ public class MainActivity extends AppCompatActivity {
 //                    Toast.makeText(getApplicationContext(),"button up",Toast.LENGTH_SHORT).show();
                     _sr.stopListening();
                     _speechText.setText("");
-                    rotateInfinty.cancel();
-                    scaleInfinity.setRepeatCount(0);
+//                    rotateInfinty.setRepeatCount(0);
+                    scaleEndTime[0] = System.currentTimeMillis();
+                    long runningTime = scaleEndTime[0] - scaleStartTime[0];
+                    long repeatCounter = runningTime/750;
+                    if(repeatCounter%2 == 0) {
+                        scaleInfinity.setRepeatCount(1);
+                    } else {
+                        scaleInfinity.setRepeatCount(0);
+                    }
                     ((Vibrator)getSystemService(VIBRATOR_SERVICE)).vibrate(100);
                     Thread t = new Thread(new Runnable() {
                         @Override
@@ -319,7 +331,7 @@ public class MainActivity extends AppCompatActivity {
             if (_bluetoothFragment == null) {
                 _bluetoothFragment = new BluetoothDialogFragment();
             }
-            showDialog();
+            _bluetoothFragment.show(getFragmentManager(), "bluetoothDevices");
 //        }
 
 //        if(Permissions.getPermission("BLUETOOTH_ADMIN")) {
@@ -381,7 +393,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void showDialog() {
-        _bluetoothFragment.show(getFragmentManager(), "bluetoothDevices");
+        _bluetoothFragment.createDialog();
     }
 
     public void showMainLoader() {
