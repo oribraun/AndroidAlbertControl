@@ -96,6 +96,7 @@ public class BluetoothDialogFragment extends DialogFragment implements Bluetooth
                             if(Bluetooth.isConnected()) {
                                 Bluetooth.isConnected();
                             }
+                            setReceiverFilters();
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -222,19 +223,28 @@ public class BluetoothDialogFragment extends DialogFragment implements Bluetooth
         }
         _builder.pairedFinishLoading();
 
-        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-        filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
-        filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
-        filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
-        filter.addAction(BluetoothDevice.ACTION_PAIRING_REQUEST);
-        filter.addAction(BluetoothDevice.ACTION_UUID);
-        _mainActivity.registerReceiver(mReceiver, filter);
+        this.setReceiverFilters();
         boolean discoverySuccess = Bluetooth.startDiscovery();
         if(discoverySuccess) {
 //                    _builder.toggleSearching();
         }
         int finish = 1;
+    }
+
+    private void setReceiverFilters() {
+        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+        filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        filter.addAction(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED);
+        filter.addAction(BluetoothAdapter.EXTRA_CONNECTION_STATE);
+        filter.addAction(BluetoothAdapter.EXTRA_PREVIOUS_CONNECTION_STATE);
+        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
+        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
+        filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+        filter.addAction(BluetoothDevice.ACTION_PAIRING_REQUEST);
+        filter.addAction(BluetoothDevice.ACTION_UUID);
+        _mainActivity.registerReceiver(mReceiver, filter);
     }
     // Create a BroadcastReceiver for ACTION_FOUND.
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
@@ -293,6 +303,9 @@ public class BluetoothDialogFragment extends DialogFragment implements Bluetooth
             else if(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED.equals(action)) {
                 boolean co = true;
             }
+            else if(BluetoothAdapter.EXTRA_CONNECTION_STATE.equals(action) || BluetoothAdapter.EXTRA_PREVIOUS_CONNECTION_STATE.equals(action)) {
+                _builder.dialogErrorMessage("popup");
+            }
             else if(BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
                 boolean connected = device.getBondState() == BluetoothDevice.BOND_BONDED;
                 boolean connecting = device.getBondState() == BluetoothDevice.BOND_BONDING;
@@ -311,6 +324,17 @@ public class BluetoothDialogFragment extends DialogFragment implements Bluetooth
                 Log.v("connected ACL = " , String.valueOf(connected));
                 Log.v("connecting ACL = " , String.valueOf(connecting));
                 Log.v("disconnect ACL = " , String.valueOf(disconnect));
+            }
+            else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
+                try {
+                        Bluetooth.killSocket();
+                        createDialog();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+            }
+            else if (BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED.equals(action)) {
+                boolean co = true;
             }
             else if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
                 boolean connected = device.getBondState() == BluetoothDevice.BOND_BONDED;
