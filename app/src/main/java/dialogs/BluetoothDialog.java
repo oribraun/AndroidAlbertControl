@@ -444,7 +444,8 @@ public class BluetoothDialog extends AlertDialog {
                 _availableMacListAdapter.add(mac);
             } else if(_availableMacListAdapter.indexOf(mac) > -1  && !mac.equals(name)) {
                 int index = _availableMacListAdapter.indexOf(mac);
-                _availableMacListAdapter.add(index,name);
+                _availableListAdapter.remove(name);
+                _availableListAdapter.insert(name, index);
             }
 //            _availableListAdapter.notifyDataSetChanged();
         }
